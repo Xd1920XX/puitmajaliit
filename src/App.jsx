@@ -49,16 +49,6 @@ export default function App() {
 
   return (
     <div className="app">
-      <header className="topbar">
-        <div className="brand">
-          <span className="brand-mark" aria-hidden />
-          <div>
-            <h1>Puitmajaliit</h1>
-            <p className="brand-sub">Puitmaja ehitussimulaator</p>
-          </div>
-        </div>
-      </header>
-
       <main className="layout">
         <section className="stage">
           <HouseViewer floors={floors} />
