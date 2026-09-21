@@ -1,6 +1,14 @@
-import { Suspense, useMemo, useRef } from 'react'
-import { Canvas } from '@react-three/fiber'
-import { OrbitControls, Environment, ContactShadows, useGLTF } from '@react-three/drei'
+import { Suspense, useMemo, useRef, useState } from 'react'
+import { Canvas, useThree, useFrame } from '@react-three/fiber'
+import {
+  OrbitControls,
+  Environment,
+  ContactShadows,
+  useGLTF,
+  Grid,
+  useProgress,
+} from '@react-three/drei'
+import * as THREE from 'three'
 import {
   PARKLA_URL,
   KARKASS_VARIANTS,
@@ -43,40 +51,221 @@ function House({ floors }) {
   )
 }
 
+function CameraGrabber({ cameraRef, onAzimuth }) {
+  const { camera } = useThree()
+  cameraRef.current = camera
+  useFrame(() => {
+    if (!onAzimuth) return
+    const az = Math.atan2(camera.position.x, camera.position.z)
+    onAzimuth(az)
+  })
+  return null
+}
+
 export default function HouseViewer({ floors }) {
   const controls = useRef(null)
+  const cameraRef = useRef(null)
+  const [azimuth, setAzimuth] = useState(0)
+  const [gridOn, setGridOn] = useState(false)
+  const [panelOpen, setPanelOpen] = useState(true)
+  const initialCamPos = useMemo(() => [30, 22, 42], [])
+  const builtCount = floors.filter((f) => f.karkass && f.horisontaal && f.kips && f.fassaad).length
   // Aim slightly below the building's mid-height so the model sits in the
   // upper half of the frame rather than dead-center.
   const targetY = (MAX_FLOORS * FLOOR_HEIGHT) / 2.6
+
+  const withRig = (fn) => () => {
+    const c = controls.current
+    const cam = cameraRef.current
+    if (!c || !cam) return
+    fn(c, cam)
+    c.update()
+  }
+
+  const panY = (delta) => withRig((c, cam) => {
+    c.target.y += delta
+    cam.position.y += delta
+  })
+  const dolly = (factor) => withRig((c, cam) => {
+    const offset = cam.position.clone().sub(c.target).multiplyScalar(factor)
+    const next = offset.length()
+    if (next < 8 || next > 120) return
+    cam.position.copy(c.target).add(offset)
+  })
+  const orbit = (deltaAz) => withRig((c, cam) => {
+    const offset = cam.position.clone().sub(c.target)
+    const r = Math.hypot(offset.x, offset.z)
+    const a = Math.atan2(offset.x, offset.z) + deltaAz
+    cam.position.x = c.target.x + Math.sin(a) * r
+    cam.position.z = c.target.z + Math.cos(a) * r
+  })
+  const view = (preset) => withRig((c, cam) => {
+    const d = 45
+    if (preset === 'ees') cam.position.set(0, targetY, d)
+    else if (preset === 'kylg') cam.position.set(d, targetY, 0)
+    else if (preset === 'ylalt') cam.position.set(0, d + targetY, 0.01)
+    else if (preset === 'iso') cam.position.set(30, 22, 42)
+    c.target.set(0, targetY, 0)
+  })
+  const reset = withRig((c, cam) => {
+    cam.position.set(...initialCamPos)
+    c.target.set(0, targetY, 0)
+  })
+
   return (
-    <Canvas
-      shadows
-      dpr={[1, 2]}
-      camera={{ position: [30, 22, 42], fov: 40, near: 0.1, far: 500 }}
-    >
-      <color attach="background" args={['#fff9e8']} />
-      <ambientLight intensity={0.35} />
-      <directionalLight
-        position={[20, 36, 14]}
-        intensity={1.1}
-        castShadow
-        shadow-mapSize={[2048, 2048]}
-      />
-      <Suspense fallback={null}>
-        <House floors={floors} />
-        <Environment preset="park" />
-      </Suspense>
-      <ContactShadows position={[0, -0.01, 0]} opacity={0.35} scale={40} blur={2.4} far={10} />
-      <OrbitControls
-        ref={controls}
-        makeDefault
-        enablePan={false}
-        target={[0, targetY, 0]}
-        minDistance={8}
-        maxDistance={120}
-        maxPolarAngle={Math.PI / 2.05}
-      />
-    </Canvas>
+    <div className="viewer">
+      <Canvas
+        shadows
+        dpr={[1, 2]}
+        gl={{ antialias: true, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.05 }}
+        camera={{ position: initialCamPos, fov: 40, near: 0.1, far: 500 }}
+      >
+        <color attach="background" args={['#eef1e6']} />
+        <hemisphereLight args={['#dfe8ff', '#c9b98b', 0.55]} />
+        <ambientLight intensity={0.35} />
+        <directionalLight
+          position={[24, 40, 16]}
+          intensity={1.1}
+          color="#fff2d6"
+          castShadow
+          shadow-mapSize={[2048, 2048]}
+        />
+        <directionalLight position={[-18, 20, -14]} intensity={0.3} color="#bcd1ff" />
+        <Suspense fallback={null}>
+          <House floors={floors} />
+          <Environment preset="park" />
+        </Suspense>
+        {gridOn && (
+          <Grid
+            args={[80, 80]}
+            cellSize={1}
+            cellThickness={0.6}
+            cellColor="#b8ad8a"
+            sectionSize={5}
+            sectionThickness={1.1}
+            sectionColor="#6b7a55"
+            fadeDistance={90}
+            fadeStrength={1.4}
+            infiniteGrid
+            position={[0, 0.002, 0]}
+          />
+        )}
+        <ContactShadows position={[0, -0.005, 0]} opacity={0.45} scale={60} blur={2.8} far={14} />
+        <OrbitControls
+          ref={controls}
+          makeDefault
+          enablePan
+          screenSpacePanning
+          enableDamping
+          dampingFactor={0.08}
+          target={[0, targetY, 0]}
+          minDistance={8}
+          maxDistance={120}
+          maxPolarAngle={Math.PI / 2.05}
+        />
+        <CameraGrabber cameraRef={cameraRef} onAzimuth={setAzimuth} />
+      </Canvas>
+
+      <div className="viewer-hud" aria-hidden>
+        <div className="hud-badge">
+          <span className="hud-badge-num">{builtCount}</span>
+          <span className="hud-badge-lbl">/ {MAX_FLOORS} korrust</span>
+        </div>
+      </div>
+
+      {!panelOpen && (
+        <button
+          type="button"
+          className="viewer-controls-toggle"
+          onClick={() => setPanelOpen(true)}
+          title="Näita juhtnuppe"
+          aria-label="Näita juhtnuppe"
+        >
+          ⚙
+        </button>
+      )}
+
+      {panelOpen && (
+      <div className="viewer-controls" aria-label="Vaate juhtimine">
+        <div className="vc-header">
+          <span className="vc-title">Vaade</span>
+          <button
+            type="button"
+            className="vc-close"
+            onClick={() => setPanelOpen(false)}
+            title="Peida"
+            aria-label="Peida juhtnupud"
+          >
+            ×
+          </button>
+        </div>
+        <div className="vc-section">
+          <span className="vc-label">Liikumine</span>
+          <div className="vc-grid vc-grid-3">
+            <span />
+            <button type="button" onClick={panY(1.5)} title="Liigu üles" aria-label="Liigu üles">↑</button>
+            <span />
+            <button type="button" onClick={orbit(-Math.PI / 12)} title="Pööra vasakule" aria-label="Pööra vasakule">⟲</button>
+            <button type="button" onClick={panY(-1.5)} title="Liigu alla" aria-label="Liigu alla">↓</button>
+            <button type="button" onClick={orbit(Math.PI / 12)} title="Pööra paremale" aria-label="Pööra paremale">⟳</button>
+          </div>
+        </div>
+
+        <div className="vc-section">
+          <span className="vc-label">Suum</span>
+          <div className="vc-row">
+            <button type="button" onClick={dolly(0.85)} title="Suumi sisse" aria-label="Suumi sisse">＋</button>
+            <button type="button" onClick={dolly(1.18)} title="Suumi välja" aria-label="Suumi välja">−</button>
+          </div>
+        </div>
+
+        <div className="vc-section">
+          <span className="vc-label">Vaated</span>
+          <div className="vc-row vc-row-wrap">
+            <button type="button" onClick={view('ees')}>Ees</button>
+            <button type="button" onClick={view('kylg')}>Külg</button>
+            <button type="button" onClick={view('ylalt')}>Ülalt</button>
+            <button type="button" onClick={view('iso')}>Iso</button>
+          </div>
+        </div>
+
+        <div className="vc-footer">
+          <button
+            type="button"
+            className={`vc-toggle ${gridOn ? 'is-on' : ''}`}
+            onClick={() => setGridOn((v) => !v)}
+            aria-pressed={gridOn}
+            title="Näita võrku"
+          >
+            Võrk
+          </button>
+          <button type="button" className="vc-reset" onClick={reset}>Lähtesta</button>
+        </div>
+      </div>
+      )}
+
+      <div className="viewer-compass" title="Kompass" aria-hidden>
+        <svg viewBox="-50 -50 100 100" style={{ transform: `rotate(${-azimuth}rad)` }}>
+          <circle cx="0" cy="0" r="44" fill="rgba(255,255,255,0.85)" stroke="var(--brand-line)" strokeWidth="1.5" />
+          <polygon points="0,-34 8,6 0,-2 -8,6" fill="var(--brand-accent)" />
+          <polygon points="0,34 8,-6 0,2 -8,-6" fill="var(--brand-green-dark)" opacity="0.55" />
+          <text x="0" y="-16" textAnchor="middle" fontSize="14" fontWeight="700" fill="var(--brand-ink)" fontFamily="var(--font-display)">N</text>
+        </svg>
+      </div>
+
+      <LoadingOverlay />
+    </div>
+  )
+}
+
+function LoadingOverlay() {
+  const { active, progress } = useProgress()
+  if (!active) return null
+  return (
+    <div className="viewer-loading" role="status" aria-live="polite">
+      <div className="spinner" />
+      <span>Laadin mudeleid… {Math.round(progress)}%</span>
+    </div>
   )
 }
 

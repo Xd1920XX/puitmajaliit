@@ -16,6 +16,7 @@ function initialFloors() {
 export default function App() {
   const [floors, setFloors] = useState(initialFloors)
   const [selectedFloorId, setSelectedFloorId] = useState(1)
+  const [sidebarOpen, setSidebarOpen] = useState(true)
 
   const setKarkass = (floorId, variantId) => {
     setFloors((prev) =>
@@ -49,19 +50,31 @@ export default function App() {
 
   return (
     <div className="app">
-      <main className="layout">
+      <main className={`layout ${sidebarOpen ? '' : 'layout-full'}`}>
         <section className="stage">
           <HouseViewer floors={floors} />
+          <button
+            type="button"
+            className="sidebar-toggle"
+            onClick={() => setSidebarOpen((v) => !v)}
+            aria-pressed={sidebarOpen}
+            title={sidebarOpen ? 'Peida paneel' : 'Näita paneeli'}
+            aria-label={sidebarOpen ? 'Peida paneel' : 'Näita paneeli'}
+          >
+            {sidebarOpen ? '›' : '‹'}
+          </button>
         </section>
-        <Sidebar
-          floors={floors}
-          selectedFloorId={selectedFloorId}
-          onSelectFloor={setSelectedFloorId}
-          onKarkass={setKarkass}
-          onToggleLayer={toggleLayer}
-          onReset={reset}
-          onBuildAll={buildAll}
-        />
+        {sidebarOpen && (
+          <Sidebar
+            floors={floors}
+            selectedFloorId={selectedFloorId}
+            onSelectFloor={setSelectedFloorId}
+            onKarkass={setKarkass}
+            onToggleLayer={toggleLayer}
+            onReset={reset}
+            onBuildAll={buildAll}
+          />
+        )}
       </main>
     </div>
   )
