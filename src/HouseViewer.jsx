@@ -2,11 +2,10 @@ import { Suspense, useMemo, useRef, useState } from 'react'
 import { Canvas, useThree, useFrame } from '@react-three/fiber'
 import {
   OrbitControls,
-  Environment,
-  ContactShadows,
   useGLTF,
   Grid,
   useProgress,
+  Environment,
 } from '@react-three/drei'
 import * as THREE from 'three'
 import {
@@ -22,7 +21,35 @@ import {
 // Object3D having two parents, so cloning per instance is required.
 function Model({ url }) {
   const { scene } = useGLTF(url)
-  const cloned = useMemo(() => scene.clone(true), [scene])
+  const cloned = useMemo(() => {
+    const c = scene.clone(true)
+    c.traverse((o) => {
+      if (!o.isMesh) return
+      o.castShadow = true
+      o.receiveShadow = true
+      if (o.geometry && !o.geometry.attributes.normal) o.geometry.computeVertexNormals()
+      const mats = Array.isArray(o.material) ? o.material : o.material ? [o.material] : []
+      mats.forEach((m, idx) => {
+        // Clone so we don't mutate the shared material across all instances.
+        const nm = m.clone()
+        // Respect authored PBR values; only tame environment reflections so
+        // materials like concrete don't sparkle under a strong IBL.
+        if ('envMapIntensity' in nm) nm.envMapIntensity = 0.55
+        // Max-quality texture filtering.
+        const maxAniso = 16
+        ;['map', 'normalMap', 'roughnessMap', 'metalnessMap', 'aoMap', 'emissiveMap'].forEach((k) => {
+          const t = nm[k]
+          if (t) {
+            t.anisotropy = maxAniso
+            t.needsUpdate = true
+          }
+        })
+        if (Array.isArray(o.material)) o.material[idx] = nm
+        else o.material = nm
+      })
+    })
+    return c
+  }, [scene])
   return <primitive object={cloned} />
 }
 
@@ -115,25 +142,24 @@ export default function HouseViewer({ floors }) {
   return (
     <div className="viewer">
       <Canvas
-        shadows
-        dpr={[1, 2]}
-        gl={{ antialias: true, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.05 }}
+        dpr={[1, Math.min(window.devicePixelRatio || 2, 3)]}
+        gl={{
+          antialias: true,
+          powerPreference: 'high-performance',
+          toneMapping: THREE.ACESFilmicToneMapping,
+          toneMappingExposure: 1.0,
+          outputColorSpace: THREE.SRGBColorSpace,
+        }}
         camera={{ position: initialCamPos, fov: 40, near: 0.1, far: 500 }}
       >
-        <color attach="background" args={['#eef1e6']} />
-        <hemisphereLight args={['#dfe8ff', '#c9b98b', 0.55]} />
+        {/* Studio three-point: neutral key + softer fill + back rim.
+            Balanced white light, minimal color cast, even exposure. */}
+        <color attach="background" args={['#fff9e8']} />
         <ambientLight intensity={0.35} />
-        <directionalLight
-          position={[24, 40, 16]}
-          intensity={1.1}
-          color="#fff2d6"
-          castShadow
-          shadow-mapSize={[2048, 2048]}
-        />
-        <directionalLight position={[-18, 20, -14]} intensity={0.3} color="#bcd1ff" />
+        <directionalLight position={[20, 36, 14]} intensity={1.1} />
         <Suspense fallback={null}>
           <House floors={floors} />
-          <Environment preset="park" />
+          <Environment preset="park" environmentIntensity={0.5} />
         </Suspense>
         {gridOn && (
           <Grid
@@ -150,7 +176,6 @@ export default function HouseViewer({ floors }) {
             position={[0, 0.002, 0]}
           />
         )}
-        <ContactShadows position={[0, -0.005, 0]} opacity={0.45} scale={60} blur={2.8} far={14} />
         <OrbitControls
           ref={controls}
           makeDefault

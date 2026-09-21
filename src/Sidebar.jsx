@@ -29,7 +29,6 @@ export default function Sidebar({
   onKarkass,
   onToggleLayer,
   onReset,
-  onBuildAll,
 }) {
   const floor = floors.find((f) => f.id === selectedFloorId)
   const doneCount = floors.filter(isFloorComplete).length
@@ -40,10 +39,7 @@ export default function Sidebar({
   return (
     <aside className="sidebar">
       <header className="sidebar-head">
-        <h2>Ehita puitmaja</h2>
-        <p className="hint">
-          Ehita korrus alt üles. Iga korrus: karkass → vahelaed → kips → fassaad.
-        </p>
+        <img src="/logo.png" alt="Woodhouse Academy" className="brand-logo" />
       </header>
 
       <section className="score">
@@ -162,7 +158,6 @@ export default function Sidebar({
 
       <footer className="sidebar-foot">
         <button type="button" className="btn btn-ghost" onClick={onReset}>Alusta uuesti</button>
-        <button type="button" className="btn btn-primary" onClick={onBuildAll}>Ehita kõik</button>
       </footer>
     </aside>
   )

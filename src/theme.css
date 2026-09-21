@@ -1,3 +1,27 @@
+@font-face {
+  font-family: 'Aino';
+  src: url('/fonts/Aino-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Aino';
+  src: url('/fonts/Aino-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Aino Headline';
+  src: url('/fonts/Aino-Headline.woff2') format('woff2');
+  font-weight: 400 900;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
   --brand-green: #2e6347;
   --brand-green-dark: #1d4432;
@@ -13,8 +37,8 @@
   --shadow-sm: 0 1px 2px rgba(29, 68, 50, 0.08);
   --shadow-md: 0 6px 24px rgba(29, 68, 50, 0.12);
 
-  --font-body: 'Inter', system-ui, -apple-system, Segoe UI, sans-serif;
-  --font-display: 'Fraunces', Georgia, serif;
+  --font-body: 'Aino', system-ui, -apple-system, Segoe UI, sans-serif;
+  --font-display: 'Aino Headline', 'Aino', system-ui, sans-serif;
 
   color-scheme: light;
 }
