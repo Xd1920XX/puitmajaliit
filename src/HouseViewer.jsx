@@ -5,7 +5,6 @@ import {
   useGLTF,
   Grid,
   useProgress,
-  Environment,
 } from '@react-three/drei'
 import * as THREE from 'three'
 import {
@@ -19,37 +18,31 @@ import {
 // Each Model clones its GLB scene because the same URL may render multiple
 // times (e.g. Karkass_CLT on floors 1, 2, 3). three.js forbids the same
 // Object3D having two parents, so cloning per instance is required.
-function Model({ url }) {
-  const { scene } = useGLTF(url)
-  const cloned = useMemo(() => {
-    const c = scene.clone(true)
-    c.traverse((o) => {
-      if (!o.isMesh) return
-      o.castShadow = true
-      o.receiveShadow = true
-      if (o.geometry && !o.geometry.attributes.normal) o.geometry.computeVertexNormals()
-      const mats = Array.isArray(o.material) ? o.material : o.material ? [o.material] : []
-      mats.forEach((m, idx) => {
-        // Clone so we don't mutate the shared material across all instances.
-        const nm = m.clone()
-        // Respect authored PBR values; only tame environment reflections so
-        // materials like concrete don't sparkle under a strong IBL.
-        if ('envMapIntensity' in nm) nm.envMapIntensity = 0.55
-        // Max-quality texture filtering.
-        const maxAniso = 16
-        ;['map', 'normalMap', 'roughnessMap', 'metalnessMap', 'aoMap', 'emissiveMap'].forEach((k) => {
-          const t = nm[k]
-          if (t) {
-            t.anisotropy = maxAniso
-            t.needsUpdate = true
-          }
-        })
-        if (Array.isArray(o.material)) o.material[idx] = nm
-        else o.material = nm
+// Configure a GLB's materials once per source scene. All floors that render
+// the same GLB then share the same material + geometry, keeping GPU memory
+// flat and eliminating per-instance material processing.
+const configuredScenes = new WeakSet()
+function configureScene(scene) {
+  if (configuredScenes.has(scene)) return
+  scene.traverse((o) => {
+    if (!o.isMesh) return
+    const mats = Array.isArray(o.material) ? o.material : o.material ? [o.material] : []
+    mats.forEach((m) => {
+      if ('envMapIntensity' in m) m.envMapIntensity = 0
+      ;['map', 'normalMap', 'roughnessMap', 'metalnessMap', 'aoMap', 'emissiveMap'].forEach((k) => {
+        const t = m[k]
+        if (t) t.anisotropy = 4
       })
     })
-    return c
-  }, [scene])
+  })
+  configuredScenes.add(scene)
+}
+
+function Model({ url }) {
+  const { scene } = useGLTF(url)
+  configureScene(scene)
+  // clone(true) shares geometry + material refs — cheap even at 10 floors.
+  const cloned = useMemo(() => scene.clone(true), [scene])
   return <primitive object={cloned} />
 }
 
@@ -78,9 +71,10 @@ function House({ floors }) {
   )
 }
 
-function CameraGrabber({ cameraRef, onAzimuth }) {
-  const { camera } = useThree()
+function CameraGrabber({ cameraRef, invalidateRef, onAzimuth }) {
+  const { camera, invalidate } = useThree()
   cameraRef.current = camera
+  invalidateRef.current = invalidate
   useFrame(() => {
     if (!onAzimuth) return
     const az = Math.atan2(camera.position.x, camera.position.z)
@@ -92,6 +86,7 @@ function CameraGrabber({ cameraRef, onAzimuth }) {
 export default function HouseViewer({ floors }) {
   const controls = useRef(null)
   const cameraRef = useRef(null)
+  const invalidateRef = useRef(null)
   const [azimuth, setAzimuth] = useState(0)
   const [gridOn, setGridOn] = useState(false)
   const [panelOpen, setPanelOpen] = useState(true)
@@ -107,6 +102,7 @@ export default function HouseViewer({ floors }) {
     if (!c || !cam) return
     fn(c, cam)
     c.update()
+    invalidateRef.current?.()
   }
 
   const panY = (delta) => withRig((c, cam) => {
@@ -142,7 +138,8 @@ export default function HouseViewer({ floors }) {
   return (
     <div className="viewer">
       <Canvas
-        dpr={[1, Math.min(window.devicePixelRatio || 2, 3)]}
+        frameloop="demand"
+        dpr={[1, 1.5]}
         gl={{
           antialias: true,
           powerPreference: 'high-performance',
@@ -159,7 +156,6 @@ export default function HouseViewer({ floors }) {
         <directionalLight position={[20, 36, 14]} intensity={1.1} />
         <Suspense fallback={null}>
           <House floors={floors} />
-          <Environment preset="park" environmentIntensity={0.5} />
         </Suspense>
         {gridOn && (
           <Grid
@@ -181,14 +177,12 @@ export default function HouseViewer({ floors }) {
           makeDefault
           enablePan
           screenSpacePanning
-          enableDamping
-          dampingFactor={0.08}
           target={[0, targetY, 0]}
           minDistance={8}
           maxDistance={120}
           maxPolarAngle={Math.PI / 2.05}
         />
-        <CameraGrabber cameraRef={cameraRef} onAzimuth={setAzimuth} />
+        <CameraGrabber cameraRef={cameraRef} invalidateRef={invalidateRef} onAzimuth={setAzimuth} />
       </Canvas>
 
       <div className="viewer-hud" aria-hidden>

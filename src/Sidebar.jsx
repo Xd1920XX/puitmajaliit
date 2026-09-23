@@ -158,6 +158,14 @@ export default function Sidebar({
 
       <footer className="sidebar-foot">
         <button type="button" className="btn btn-ghost" onClick={onReset}>Alusta uuesti</button>
+        <button
+          type="button"
+          className="btn btn-primary"
+          disabled={!canGoNext}
+          onClick={() => onSelectFloor(selectedFloorId + 1)}
+        >
+          Järgmine korrus ›
+        </button>
       </footer>
     </aside>
   )

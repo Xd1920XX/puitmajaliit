@@ -18,31 +18,16 @@ export default function App() {
   const [selectedFloorId, setSelectedFloorId] = useState(1)
   const [sidebarOpen, setSidebarOpen] = useState(true)
 
-  const isComplete = (f) => f.karkass && f.horisontaal && f.kips && f.fassaad
-
-  // After any mutation, if the currently-selected floor is now complete,
-  // auto-advance selection to the next floor (if there is one).
-  const advanceIfComplete = (nextFloors) => {
-    const cur = nextFloors.find((f) => f.id === selectedFloorId)
-    if (cur && isComplete(cur) && selectedFloorId < MAX_FLOORS) {
-      setSelectedFloorId(selectedFloorId + 1)
-    }
-  }
-
   const setKarkass = (floorId, variantId) => {
-    setFloors((prev) => {
-      const next = prev.map((f) => (f.id === floorId ? { ...f, karkass: variantId } : f))
-      advanceIfComplete(next)
-      return next
-    })
+    setFloors((prev) =>
+      prev.map((f) => (f.id === floorId ? { ...f, karkass: variantId } : f)),
+    )
   }
 
   const toggleLayer = (floorId, layerId) => {
-    setFloors((prev) => {
-      const next = prev.map((f) => (f.id === floorId ? { ...f, [layerId]: !f[layerId] } : f))
-      advanceIfComplete(next)
-      return next
-    })
+    setFloors((prev) =>
+      prev.map((f) => (f.id === floorId ? { ...f, [layerId]: !f[layerId] } : f)),
+    )
   }
 
   const reset = () => {

@@ -18,11 +18,13 @@ export const LAYERS = {
 }
 
 // Sub-steps within a single floor. Each floor cycles through this sequence.
-// Order defines the linear gate: karkass → horisontaal → kips → fassaad.
+// Order defines the linear gate: karkass → kips → vahelaed → fassaad.
+// Kips before vahelaed so the interior gypsum stays visible before the ceiling
+// slab covers it.
 export const FLOOR_STEPS = [
   { id: 'karkass',     label: 'Karkass',     kind: 'variant', hint: 'Vali kandev karkass — 300/400/600 mm või CLT.' },
-  { id: 'horisontaal', label: 'Vahelaed',    kind: 'toggle',  hint: 'Horisontaalkonstruktsioon karkassi peale.' },
   { id: 'kips',        label: 'Kips',        kind: 'toggle',  hint: 'Sisemine 2-kihiline kipsplaat.' },
+  { id: 'horisontaal', label: 'Vahelaed',    kind: 'toggle',  hint: 'Horisontaalkonstruktsioon kipsi peale.' },
   { id: 'fassaad',     label: 'Fassaad',     kind: 'toggle',  hint: 'Välimine fassaadikate.' },
 ]
 
