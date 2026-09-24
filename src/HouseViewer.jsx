@@ -144,7 +144,7 @@ export default function HouseViewer({ floors }) {
           antialias: true,
           powerPreference: 'high-performance',
           toneMapping: THREE.ACESFilmicToneMapping,
-          toneMappingExposure: 1.0,
+          toneMappingExposure: 1.25,
           outputColorSpace: THREE.SRGBColorSpace,
         }}
         camera={{ position: initialCamPos, fov: 40, near: 0.1, far: 500 }}
@@ -152,8 +152,10 @@ export default function HouseViewer({ floors }) {
         {/* Studio three-point: neutral key + softer fill + back rim.
             Balanced white light, minimal color cast, even exposure. */}
         <color attach="background" args={['#fff9e8']} />
-        <ambientLight intensity={0.35} />
-        <directionalLight position={[20, 36, 14]} intensity={1.1} />
+        <ambientLight intensity={0.9} />
+        <hemisphereLight args={['#ffffff', '#d8d0b8', 0.8]} />
+        <directionalLight position={[20, 36, 14]} intensity={1.6} />
+        <directionalLight position={[-18, 20, -14]} intensity={0.5} />
         <Suspense fallback={null}>
           <House floors={floors} />
         </Suspense>
