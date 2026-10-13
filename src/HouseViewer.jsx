@@ -8,19 +8,18 @@ import {
 } from '@react-three/drei'
 import * as THREE from 'three'
 import {
-  PARKLA_URL,
-  KARKASS_VARIANTS,
+  BASELINE_URLS,
+  FLOOR_STEPS,
   LAYERS,
   FLOOR_HEIGHT,
   MAX_FLOORS,
+  TREPIKODA_GROUND_URL,
+  TREPIKODA_UPPER_URL,
 } from './config.js'
 
-// Each Model clones its GLB scene because the same URL may render multiple
-// times (e.g. Karkass_CLT on floors 1, 2, 3). three.js forbids the same
-// Object3D having two parents, so cloning per instance is required.
-// Configure a GLB's materials once per source scene. All floors that render
-// the same GLB then share the same material + geometry, keeping GPU memory
-// flat and eliminating per-instance material processing.
+const VARIANT_STEPS = FLOOR_STEPS.filter((s) => s.kind === 'variant')
+const TOGGLE_STEPS = FLOOR_STEPS.filter((s) => s.kind === 'toggle')
+
 const configuredScenes = new WeakSet()
 function configureScene(scene) {
   if (configuredScenes.has(scene)) return
@@ -41,21 +40,43 @@ function configureScene(scene) {
 function Model({ url }) {
   const { scene } = useGLTF(url)
   configureScene(scene)
-  // clone(true) shares geometry + material refs — cheap even at 10 floors.
   const cloned = useMemo(() => scene.clone(true), [scene])
   return <primitive object={cloned} />
 }
 
+function variantUrl(step, floor) {
+  const id = floor[step.id]
+  if (!id) return null
+  return step.variants.find((v) => v.id === id)?.url ?? null
+}
+
+function isFloorStarted(floor) {
+  return FLOOR_STEPS.some((s) =>
+    s.kind === 'variant' ? floor[s.id] !== null : floor[s.id] === true,
+  )
+}
+
 function Floor({ index, floor }) {
-  const karkassUrl = floor.karkass
-    ? KARKASS_VARIANTS.find((v) => v.id === floor.karkass)?.url
-    : null
+  const isGround = index === 0
+  const trepikodaUrl = isGround ? TREPIKODA_GROUND_URL : TREPIKODA_UPPER_URL
+  // The 2K GLB's geometry sits one floor-height above its local origin,
+  // so for upper floors we offset the trepikoda group down by FLOOR_HEIGHT
+  // to make the stairwell land on this floor rather than the next one up.
+  const trepikodaOffsetY = isGround ? 0 : -FLOOR_HEIGHT
   return (
     <group position={[0, index * FLOOR_HEIGHT, 0]}>
-      {karkassUrl && <Model url={karkassUrl} />}
-      {floor.horisontaal && <Model url={LAYERS.horisontaal.url} />}
-      {floor.kips && <Model url={LAYERS.kips.url} />}
-      {floor.fassaad && <Model url={LAYERS.fassaad.url} />}
+      {isFloorStarted(floor) && (
+        <group position={[0, trepikodaOffsetY, 0]}>
+          <Model url={trepikodaUrl} />
+        </group>
+      )}
+      {VARIANT_STEPS.map((step) => {
+        const url = variantUrl(step, floor)
+        return url ? <Model key={step.id} url={url} /> : null
+      })}
+      {TOGGLE_STEPS.map((step) =>
+        floor[step.id] ? <Model key={step.id} url={LAYERS[step.id].url} /> : null,
+      )}
     </group>
   )
 }
@@ -63,7 +84,9 @@ function Floor({ index, floor }) {
 function House({ floors }) {
   return (
     <>
-      <Model url={PARKLA_URL} />
+      {BASELINE_URLS.map((url) => (
+        <Model key={url} url={url} />
+      ))}
       {floors.map((f, i) => (
         <Floor key={f.id} index={i} floor={f} />
       ))}
@@ -83,6 +106,13 @@ function CameraGrabber({ cameraRef, invalidateRef, onAzimuth }) {
   return null
 }
 
+function isFloorComplete(floor) {
+  return FLOOR_STEPS.every((s) => {
+    if (s.optional) return true
+    return s.kind === 'variant' ? floor[s.id] !== null : floor[s.id] === true
+  })
+}
+
 export default function HouseViewer({ floors }) {
   const controls = useRef(null)
   const cameraRef = useRef(null)
@@ -91,9 +121,7 @@ export default function HouseViewer({ floors }) {
   const [gridOn, setGridOn] = useState(false)
   const [panelOpen, setPanelOpen] = useState(true)
   const initialCamPos = useMemo(() => [30, 22, 42], [])
-  const builtCount = floors.filter((f) => f.karkass && f.horisontaal && f.kips && f.fassaad).length
-  // Aim slightly below the building's mid-height so the model sits in the
-  // upper half of the frame rather than dead-center.
+  const builtCount = floors.filter(isFloorComplete).length
   const targetY = (MAX_FLOORS * FLOOR_HEIGHT) / 2.6
 
   const withRig = (fn) => () => {
@@ -149,8 +177,6 @@ export default function HouseViewer({ floors }) {
         }}
         camera={{ position: initialCamPos, fov: 40, near: 0.1, far: 500 }}
       >
-        {/* Studio three-point: neutral key + softer fill + back rim.
-            Balanced white light, minimal color cast, even exposure. */}
         <color attach="background" args={['#fff9e8']} />
         <ambientLight intensity={0.9} />
         <hemisphereLight args={['#ffffff', '#d8d0b8', 0.8]} />
@@ -291,6 +317,8 @@ function LoadingOverlay() {
 }
 
 // Preload every GLB up front so building a floor doesn't stall on network I/O.
-useGLTF.preload(PARKLA_URL)
-KARKASS_VARIANTS.forEach((v) => useGLTF.preload(v.url))
-Object.values(LAYERS).forEach((l) => useGLTF.preload(l.url))
+BASELINE_URLS.forEach((url) => useGLTF.preload(url))
+VARIANT_STEPS.forEach((s) => s.variants.forEach((v) => useGLTF.preload(v.url)))
+TOGGLE_STEPS.forEach((s) => useGLTF.preload(LAYERS[s.id].url))
+useGLTF.preload(TREPIKODA_GROUND_URL)
+useGLTF.preload(TREPIKODA_UPPER_URL)

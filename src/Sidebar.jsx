@@ -1,40 +1,79 @@
-import { FLOOR_STEPS, KARKASS_VARIANTS, LAYERS, MAX_FLOORS } from './config.js'
+import { FLOOR_STEPS, LAYERS, MAX_FLOORS } from './config.js'
 
-function isStepDone(floor, id) {
-  return id === 'karkass' ? floor.karkass !== null : floor[id] === true
+function isStepDone(floor, step) {
+  return step.kind === 'variant' ? floor[step.id] !== null : floor[step.id] === true
 }
 
+// Linear gate — required step blocks next until done. Optional never blocks.
 function isStepEnabled(floor, index) {
   for (let i = 0; i < index; i++) {
-    if (!isStepDone(floor, FLOOR_STEPS[i].id)) return false
+    const prior = FLOOR_STEPS[i]
+    if (prior.optional) continue
+    if (!isStepDone(floor, prior)) return false
   }
   return true
 }
 
 function isFloorComplete(floor) {
-  return FLOOR_STEPS.every((s) => isStepDone(floor, s.id))
+  return FLOOR_STEPS.every((s) => s.optional || isStepDone(floor, s))
 }
 
-// A floor is selectable when the floor below is complete (or it's floor 1).
 function canSelect(floors, floorId) {
   if (floorId === 1) return true
   const prev = floors.find((f) => f.id === floorId - 1)
   return prev ? isFloorComplete(prev) : false
 }
 
+function VariantGrid({ step, selectedId, enabled, onPick }) {
+  return (
+    <div className="variant-grid" role="radiogroup" aria-label={step.label}>
+      {step.variants.map((v) => {
+        const selected = selectedId === v.id
+        return (
+          <button
+            key={v.id}
+            type="button"
+            role="radio"
+            aria-checked={selected}
+            className={`variant ${selected ? 'is-selected' : ''}`}
+            disabled={!enabled}
+            onClick={() => onPick(v.id)}
+          >
+            {v.label}
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
+function LayerToggle({ label, on, enabled, onClick }) {
+  return (
+    <button
+      type="button"
+      className={`layer-toggle ${on ? 'is-on' : ''}`}
+      disabled={!enabled}
+      aria-pressed={on}
+      onClick={onClick}
+    >
+      <span>{label}</span>
+      <span className="layer-state">{on ? 'Lisatud ✓' : 'Lisa'}</span>
+    </button>
+  )
+}
+
 export default function Sidebar({
   floors,
   selectedFloorId,
   onSelectFloor,
-  onKarkass,
+  onVariant,
   onToggleLayer,
   onReset,
 }) {
   const floor = floors.find((f) => f.id === selectedFloorId)
   const doneCount = floors.filter(isFloorComplete).length
   const canGoPrev = selectedFloorId > 1
-  const canGoNext =
-    selectedFloorId < MAX_FLOORS && isFloorComplete(floor)
+  const canGoNext = selectedFloorId < MAX_FLOORS && isFloorComplete(floor)
 
   return (
     <aside className="sidebar">
@@ -99,16 +138,19 @@ export default function Sidebar({
         <ol className="steps">
           {FLOOR_STEPS.map((step, index) => {
             const enabled = isStepEnabled(floor, index)
-            const done = isStepDone(floor, step.id)
+            const done = isStepDone(floor, step)
             return (
               <li
                 key={step.id}
-                className={`step ${done ? 'is-done' : ''} ${!enabled ? 'is-locked' : ''}`}
+                className={`step ${done ? 'is-done' : ''} ${!enabled ? 'is-locked' : ''} ${step.optional ? 'is-optional' : ''}`}
               >
                 <div className="step-head">
                   <span className="step-num">{index + 1}</span>
                   <div className="step-title">
-                    <strong>{step.label}</strong>
+                    <strong>
+                      {step.label}
+                      {step.optional && <span className="step-opt"> · valikuline</span>}
+                    </strong>
                     <span className="step-hint">{step.hint}</span>
                   </div>
                   <span className="step-state">
@@ -117,37 +159,19 @@ export default function Sidebar({
                 </div>
                 <div className="step-body">
                   {step.kind === 'variant' ? (
-                    <div className="variant-grid" role="radiogroup" aria-label="Karkassi variant">
-                      {KARKASS_VARIANTS.map((v) => {
-                        const selected = floor.karkass === v.id
-                        return (
-                          <button
-                            key={v.id}
-                            type="button"
-                            role="radio"
-                            aria-checked={selected}
-                            className={`variant ${selected ? 'is-selected' : ''}`}
-                            disabled={!enabled}
-                            onClick={() => onKarkass(selectedFloorId, v.id)}
-                          >
-                            {v.label}
-                          </button>
-                        )
-                      })}
-                    </div>
+                    <VariantGrid
+                      step={step}
+                      selectedId={floor[step.id]}
+                      enabled={enabled}
+                      onPick={(id) => onVariant(selectedFloorId, step.id, id)}
+                    />
                   ) : (
-                    <button
-                      type="button"
-                      className={`layer-toggle ${floor[step.id] ? 'is-on' : ''}`}
-                      disabled={!enabled}
-                      aria-pressed={floor[step.id]}
+                    <LayerToggle
+                      label={LAYERS[step.id].label}
+                      on={floor[step.id]}
+                      enabled={enabled}
                       onClick={() => onToggleLayer(selectedFloorId, step.id)}
-                    >
-                      <span>{LAYERS[step.id].label}</span>
-                      <span className="layer-state">
-                        {floor[step.id] ? 'Lisatud ✓' : 'Lisa'}
-                      </span>
-                    </button>
+                    />
                   )}
                 </div>
               </li>

@@ -1,16 +1,18 @@
 import { useState } from 'react'
 import HouseViewer from './HouseViewer.jsx'
 import Sidebar from './Sidebar.jsx'
-import { MAX_FLOORS } from './config.js'
+import { FLOOR_STEPS, MAX_FLOORS } from './config.js'
+
+function emptyFloor(id) {
+  const f = { id }
+  for (const step of FLOOR_STEPS) {
+    f[step.id] = step.kind === 'variant' ? null : false
+  }
+  return f
+}
 
 function initialFloors() {
-  return Array.from({ length: MAX_FLOORS }, (_, i) => ({
-    id: i + 1,
-    karkass: null,
-    horisontaal: false,
-    kips: false,
-    fassaad: false,
-  }))
+  return Array.from({ length: MAX_FLOORS }, (_, i) => emptyFloor(i + 1))
 }
 
 export default function App() {
@@ -18,9 +20,9 @@ export default function App() {
   const [selectedFloorId, setSelectedFloorId] = useState(1)
   const [sidebarOpen, setSidebarOpen] = useState(true)
 
-  const setKarkass = (floorId, variantId) => {
+  const setVariant = (floorId, stepId, variantId) => {
     setFloors((prev) =>
-      prev.map((f) => (f.id === floorId ? { ...f, karkass: variantId } : f)),
+      prev.map((f) => (f.id === floorId ? { ...f, [stepId]: variantId } : f)),
     )
   }
 
@@ -56,7 +58,7 @@ export default function App() {
             floors={floors}
             selectedFloorId={selectedFloorId}
             onSelectFloor={setSelectedFloorId}
-            onKarkass={setKarkass}
+            onVariant={setVariant}
             onToggleLayer={toggleLayer}
             onReset={reset}
           />
