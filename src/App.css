@@ -60,6 +60,11 @@
   min-width: 0;
   min-height: 0;
   position: relative;
+  /* Warm radial gradient painted behind the WebGL canvas (which is now
+     transparent). Adds depth and vignetting without materials needing to
+     reflect an envmap. */
+  background:
+    radial-gradient(ellipse at 50% 32%, #fffdf1 0%, #fff4d8 42%, #f0dca8 100%);
 }
 
 .viewer {
@@ -433,7 +438,6 @@
 
 .floor-chips {
   display: grid;
-  grid-template-columns: repeat(10, minmax(0, 1fr));
   gap: 3px;
 }
 
@@ -481,12 +485,99 @@
   min-height: 0;
 }
 
+.floor-panel-head {
+  padding: 12px 16px 10px;
+  display: grid;
+  gap: 8px;
+  border-bottom: 1px solid var(--brand-line);
+  background: var(--white);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
 .floor-panel h3 {
   margin: 0;
-  padding: 12px 16px 6px;
   font-family: var(--font-display);
   font-size: 18px;
   color: var(--brand-green-dark);
+}
+
+.floor-progress {
+  display: grid;
+  gap: 4px;
+}
+
+.floor-progress-bar {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--brand-cream);
+  overflow: hidden;
+}
+
+.floor-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--brand-green), var(--brand-green-dark));
+  border-radius: 999px;
+  transition: width 0.25s ease;
+}
+
+.floor-progress-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--brand-muted);
+  font-weight: 600;
+}
+
+.floor-complete {
+  margin: 6px 12px 12px;
+  padding: 14px;
+  border-radius: var(--radius);
+  border: 1px solid var(--brand-green);
+  background: linear-gradient(180deg, #f4fbf3 0%, #e8f5e5 100%);
+  display: grid;
+  gap: 12px;
+  animation: floor-complete-in 0.3s ease-out;
+}
+
+.floor-complete-head {
+  display: grid;
+  grid-template-columns: 36px 1fr;
+  gap: 12px;
+  align-items: start;
+}
+
+.floor-complete-head strong {
+  font-family: var(--font-display);
+  font-size: 15px;
+  color: var(--brand-green-dark);
+  display: block;
+}
+
+.floor-complete-head p {
+  margin: 4px 0 0;
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--brand-ink);
+}
+
+.floor-complete-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  background: var(--brand-green);
+  color: var(--white);
+  display: grid;
+  place-items: center;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 20px;
+}
+
+@keyframes floor-complete-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 .step-opt {
@@ -694,6 +785,19 @@
   border-color: var(--brand-green);
 }
 
+.btn-full {
+  flex: 1 1 100%;
+}
+
+.btn.is-pulse {
+  animation: cta-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes cta-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(46, 99, 71, 0.0); }
+  50%      { box-shadow: 0 0 0 6px rgba(46, 99, 71, 0.18); }
+}
+
 @media (max-width: 900px) {
   .layout {
     grid-template-columns: 1fr;
@@ -702,5 +806,11 @@
   .sidebar {
     border-left: none;
     border-top: 1px solid var(--brand-line);
+  }
+  /* Chip row is cramped at 10 columns on narrow screens — wrap into
+     two rows of five. !important beats the inline-style template set
+     by Sidebar from MAX_FLOORS. */
+  .floor-chips {
+    grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
   }
 }

@@ -1,3 +1,9 @@
+// Building capacity. User may stop earlier.
+export const MAX_FLOORS = 10
+
+// Vertical stacking offset per floor.
+export const FLOOR_HEIGHT = 3.0
+
 // Baseline site models — always visible, sit below floor 1.
 // Underground parking + ground surface + ground-level balcony/landscaping.
 export const BASELINE_URLS = [
@@ -6,7 +12,8 @@ export const BASELINE_URLS = [
   '/GLB/Rodu_Maapinnal.glb',
 ]
 
-// Karkass variants. Each floor picks one.
+// Karkass variants. Each floor picks one. `yOffset` adjusts the model's
+// vertical placement relative to its floor group (defaults to 0).
 export const KARKASS_VARIANTS = [
   { id: '300', label: 'Puitkarkass 300 mm', url: '/GLB/Karkass_300.glb' },
   { id: '400', label: 'Puitkarkass 400 mm', url: '/GLB/Karkass_400.glb' },
@@ -14,15 +21,17 @@ export const KARKASS_VARIANTS = [
   { id: 'CLT', label: 'CLT paneel',         url: '/GLB/Karkass_CLT.glb' },
 ]
 
-// Trepikoda is split into two GLBs by vertical position:
-//   1K = ground-level stairwell segment (floor 1)
-//   2K = repeating upper-floor stairwell segment (floors 2..N)
-// Not a user choice — rendered automatically on any floor the user has
-// started building, with the right segment per floor index.
-export const TREPIKODA_GROUND_URL = '/GLB/Trepikoda_1K.glb'
-export const TREPIKODA_UPPER_URL = '/GLB/Trepikoda_2K.glb'
+// Trepikoda — automatic per-floor stairwell segments.
+// `ground` lands on floor 1; `upper` repeats for floors 2..N.
+// `yOffset` compensates for GLB-origin quirks (upper's geometry sits one
+// floor-height above its local origin, so group is nudged down).
+export const TREPIKODA_SEGMENTS = {
+  ground: { url: '/GLB/Trepikoda_1K.glb', yOffset: 0 },
+  upper:  { url: '/GLB/Trepikoda_2K.glb', yOffset: -FLOOR_HEIGHT },
+}
 
 // Toggleable layers within a floor. Key = state field on Floor object.
+// `yOffset` optional (defaults to 0).
 export const LAYERS = {
   jaikus:              { label: 'Jäikusseinad OSB',       url: '/GLB/Jaikusseinad_OSB.glb' },
   soojustus:           { label: 'Soojustusvill',          url: '/GLB/Soojustusvill.glb' },
@@ -52,9 +61,3 @@ export const FLOOR_STEPS = [
   { id: 'lagi',                label: 'Lagi',                  kind: 'toggle',                              hint: 'Laekonstruktsioon — sulgeb korruse.' },
   { id: 'katus',               label: 'Katus',                 kind: 'toggle',  optional: true,             hint: 'Katusekate — tavaliselt ülemisel korrusel.' },
 ]
-
-// Building capacity. User may stop earlier.
-export const MAX_FLOORS = 10
-
-// Vertical stacking offset per floor.
-export const FLOOR_HEIGHT = 3.0

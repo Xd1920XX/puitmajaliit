@@ -1,28 +1,12 @@
+import { useEffect, useRef } from 'react'
 import { FLOOR_STEPS, LAYERS, MAX_FLOORS } from './config.js'
-
-function isStepDone(floor, step) {
-  return step.kind === 'variant' ? floor[step.id] !== null : floor[step.id] === true
-}
-
-// Linear gate — required step blocks next until done. Optional never blocks.
-function isStepEnabled(floor, index) {
-  for (let i = 0; i < index; i++) {
-    const prior = FLOOR_STEPS[i]
-    if (prior.optional) continue
-    if (!isStepDone(floor, prior)) return false
-  }
-  return true
-}
-
-function isFloorComplete(floor) {
-  return FLOOR_STEPS.every((s) => s.optional || isStepDone(floor, s))
-}
-
-function canSelect(floors, floorId) {
-  if (floorId === 1) return true
-  const prev = floors.find((f) => f.id === floorId - 1)
-  return prev ? isFloorComplete(prev) : false
-}
+import {
+  canSelectFloor,
+  floorProgress,
+  isFloorComplete,
+  isStepDone,
+  isStepEnabled,
+} from './floorState.js'
 
 function VariantGrid({ step, selectedId, enabled, onPick }) {
   return (
@@ -62,6 +46,10 @@ function LayerToggle({ label, on, enabled, onClick }) {
   )
 }
 
+const chipsGridStyle = {
+  gridTemplateColumns: `repeat(${MAX_FLOORS}, minmax(0, 1fr))`,
+}
+
 export default function Sidebar({
   floors,
   selectedFloorId,
@@ -73,7 +61,38 @@ export default function Sidebar({
   const floor = floors.find((f) => f.id === selectedFloorId)
   const doneCount = floors.filter(isFloorComplete).length
   const canGoPrev = selectedFloorId > 1
-  const canGoNext = selectedFloorId < MAX_FLOORS && isFloorComplete(floor)
+  const complete = isFloorComplete(floor)
+  const hasNextFloor = selectedFloorId < MAX_FLOORS
+  const canGoNext = hasNextFloor && complete
+  const progress = floorProgress(floor)
+  const progressPct = Math.round((progress.done / progress.total) * 100)
+  const buildingDone = doneCount === MAX_FLOORS
+
+  // Reset scroll to top whenever the user navigates to another floor so the
+  // steps list always starts at step 1, not wherever we left off.
+  const panelRef = useRef(null)
+  useEffect(() => {
+    if (panelRef.current) panelRef.current.scrollTop = 0
+  }, [selectedFloorId])
+
+  // When the current floor becomes complete, nudge the confirm card into
+  // view so the user doesn't miss it (especially on long steps list).
+  const confirmRef = useRef(null)
+  useEffect(() => {
+    if (complete && confirmRef.current) {
+      confirmRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+    }
+  }, [complete])
+
+  const handleReset = () => {
+    const anyWork = floors.some((f) => FLOOR_STEPS.some((s) => isStepDone(f, s)))
+    if (anyWork && !window.confirm('Kas kustutada kõik korrused ja alustada otsast?')) return
+    onReset()
+  }
+
+  const handleConfirmFloor = () => {
+    if (hasNextFloor) onSelectFloor(selectedFloorId + 1)
+  }
 
   return (
     <aside className="sidebar">
@@ -99,13 +118,14 @@ export default function Sidebar({
           onClick={() => onSelectFloor(selectedFloorId - 1)}
           disabled={!canGoPrev}
           aria-label="Eelmine korrus"
+          title="Eelmine korrus (← nool)"
         >
           ‹
         </button>
-        <div className="floor-chips">
+        <div className="floor-chips" style={chipsGridStyle}>
           {floors.map((f) => {
             const done = isFloorComplete(f)
-            const enabled = canSelect(floors, f.id)
+            const enabled = canSelectFloor(floors, f.id)
             const active = f.id === selectedFloorId
             return (
               <button
@@ -116,6 +136,7 @@ export default function Sidebar({
                 onClick={() => onSelectFloor(f.id)}
                 aria-label={`Korrus ${f.id}`}
                 aria-current={active ? 'step' : undefined}
+                title={`Korrus ${f.id}${f.id <= 9 ? ` (${f.id})` : ''}`}
               >
                 {f.id}
               </button>
@@ -128,13 +149,24 @@ export default function Sidebar({
           onClick={() => onSelectFloor(selectedFloorId + 1)}
           disabled={!canGoNext}
           aria-label="Järgmine korrus"
+          title="Järgmine korrus (→ nool)"
         >
           ›
         </button>
       </div>
 
-      <div className="floor-panel">
-        <h3>{selectedFloorId}. korrus</h3>
+      <div className="floor-panel" ref={panelRef}>
+        <div className="floor-panel-head">
+          <h3>{selectedFloorId}. korrus</h3>
+          <div className="floor-progress" aria-label={`${progress.done} / ${progress.total} kohustuslikku sammu tehtud`}>
+            <div className="floor-progress-bar">
+              <div className="floor-progress-fill" style={{ width: `${progressPct}%` }} />
+            </div>
+            <span className="floor-progress-label">
+              {progress.done} / {progress.total} kohustuslikku
+            </span>
+          </div>
+        </div>
         <ol className="steps">
           {FLOOR_STEPS.map((step, index) => {
             const enabled = isStepEnabled(floor, index)
@@ -178,17 +210,38 @@ export default function Sidebar({
             )
           })}
         </ol>
+
+        {complete && (
+          <div className="floor-complete" ref={confirmRef} role="status">
+            <div className="floor-complete-head">
+              <span className="floor-complete-icon" aria-hidden>✓</span>
+              <div>
+                <strong>Korrus {selectedFloorId} valmis</strong>
+                <p>
+                  {hasNextFloor
+                    ? 'Kõik kohustuslikud sammud tehtud. Lisa soovi korral valikulised või kinnita ja liigu järgmisele korrusele.'
+                    : buildingDone
+                      ? 'Oled ehitanud kõik 10 korrust — hoone on valmis.'
+                      : 'Viimane korrus valmis.'}
+                </p>
+              </div>
+            </div>
+            {hasNextFloor && (
+              <button
+                type="button"
+                className="btn btn-primary is-pulse"
+                onClick={handleConfirmFloor}
+              >
+                Kinnita korrus {selectedFloorId} →
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       <footer className="sidebar-foot">
-        <button type="button" className="btn btn-ghost" onClick={onReset}>Alusta uuesti</button>
-        <button
-          type="button"
-          className="btn btn-primary"
-          disabled={!canGoNext}
-          onClick={() => onSelectFloor(selectedFloorId + 1)}
-        >
-          Järgmine korrus ›
+        <button type="button" className="btn btn-ghost btn-full" onClick={handleReset}>
+          Alusta uuesti
         </button>
       </footer>
     </aside>

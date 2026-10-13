@@ -1,10 +1,11 @@
-import { Suspense, useMemo, useRef, useState } from 'react'
+import { Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import { Canvas, useThree, useFrame } from '@react-three/fiber'
 import {
   OrbitControls,
   useGLTF,
   Grid,
   useProgress,
+  ContactShadows,
 } from '@react-three/drei'
 import * as THREE from 'three'
 import {
@@ -13,9 +14,9 @@ import {
   LAYERS,
   FLOOR_HEIGHT,
   MAX_FLOORS,
-  TREPIKODA_GROUND_URL,
-  TREPIKODA_UPPER_URL,
+  TREPIKODA_SEGMENTS,
 } from './config.js'
+import { isFloorComplete, isFloorStarted } from './floorState.js'
 
 const VARIANT_STEPS = FLOOR_STEPS.filter((s) => s.kind === 'variant')
 const TOGGLE_STEPS = FLOOR_STEPS.filter((s) => s.kind === 'toggle')
@@ -37,46 +38,47 @@ function configureScene(scene) {
   configuredScenes.add(scene)
 }
 
-function Model({ url }) {
+function Model({ url, yOffset = 0 }) {
   const { scene } = useGLTF(url)
-  configureScene(scene)
+  // Side-effect material tweaks run after render, not during, to keep
+  // Model's render path pure.
+  useEffect(() => {
+    configureScene(scene)
+  }, [scene])
   const cloned = useMemo(() => scene.clone(true), [scene])
-  return <primitive object={cloned} />
+  if (yOffset === 0) return <primitive object={cloned} />
+  return (
+    <group position={[0, yOffset, 0]}>
+      <primitive object={cloned} />
+    </group>
+  )
 }
 
-function variantUrl(step, floor) {
+function variantEntry(step, floor) {
   const id = floor[step.id]
   if (!id) return null
-  return step.variants.find((v) => v.id === id)?.url ?? null
-}
-
-function isFloorStarted(floor) {
-  return FLOOR_STEPS.some((s) =>
-    s.kind === 'variant' ? floor[s.id] !== null : floor[s.id] === true,
-  )
+  return step.variants.find((v) => v.id === id) ?? null
 }
 
 function Floor({ index, floor }) {
   const isGround = index === 0
-  const trepikodaUrl = isGround ? TREPIKODA_GROUND_URL : TREPIKODA_UPPER_URL
-  // The 2K GLB's geometry sits one floor-height above its local origin,
-  // so for upper floors we offset the trepikoda group down by FLOOR_HEIGHT
-  // to make the stairwell land on this floor rather than the next one up.
-  const trepikodaOffsetY = isGround ? 0 : -FLOOR_HEIGHT
+  const trepikoda = isGround ? TREPIKODA_SEGMENTS.ground : TREPIKODA_SEGMENTS.upper
   return (
     <group position={[0, index * FLOOR_HEIGHT, 0]}>
       {isFloorStarted(floor) && (
-        <group position={[0, trepikodaOffsetY, 0]}>
-          <Model url={trepikodaUrl} />
-        </group>
+        <Model url={trepikoda.url} yOffset={trepikoda.yOffset ?? 0} />
       )}
       {VARIANT_STEPS.map((step) => {
-        const url = variantUrl(step, floor)
-        return url ? <Model key={step.id} url={url} /> : null
+        const entry = variantEntry(step, floor)
+        return entry ? (
+          <Model key={step.id} url={entry.url} yOffset={entry.yOffset ?? 0} />
+        ) : null
       })}
-      {TOGGLE_STEPS.map((step) =>
-        floor[step.id] ? <Model key={step.id} url={LAYERS[step.id].url} /> : null,
-      )}
+      {TOGGLE_STEPS.map((step) => {
+        if (!floor[step.id]) return null
+        const layer = LAYERS[step.id]
+        return <Model key={step.id} url={layer.url} yOffset={layer.yOffset ?? 0} />
+      })}
     </group>
   )
 }
@@ -106,23 +108,45 @@ function CameraGrabber({ cameraRef, invalidateRef, onAzimuth }) {
   return null
 }
 
-function isFloorComplete(floor) {
-  return FLOOR_STEPS.every((s) => {
-    if (s.optional) return true
-    return s.kind === 'variant' ? floor[s.id] !== null : floor[s.id] === true
+// Smoothly interpolates camera position + orbit target toward a goal
+// pose over `duration`ms. Set `tweenRef.current` to kick off a tween;
+// cleared automatically when complete.
+function CameraTween({ tweenRef, controlsRef }) {
+  const { camera, invalidate } = useThree()
+  useFrame(() => {
+    const t = tweenRef.current
+    if (!t) return
+    const now = performance.now()
+    const u = Math.min(1, (now - t.start) / t.duration)
+    // Smoothstep ease-in-out.
+    const e = u * u * (3 - 2 * u)
+    camera.position.lerpVectors(t.fromPos, t.toPos, e)
+    const c = controlsRef.current
+    if (c) {
+      c.target.lerpVectors(t.fromTarget, t.toTarget, e)
+      c.update()
+    }
+    if (u >= 1) tweenRef.current = null
+    invalidate()
   })
+  return null
 }
 
 export default function HouseViewer({ floors }) {
   const controls = useRef(null)
   const cameraRef = useRef(null)
   const invalidateRef = useRef(null)
+  const tweenRef = useRef(null)
   const [azimuth, setAzimuth] = useState(0)
   const [gridOn, setGridOn] = useState(false)
   const [panelOpen, setPanelOpen] = useState(true)
   const initialCamPos = useMemo(() => [30, 22, 42], [])
   const builtCount = floors.filter(isFloorComplete).length
-  const targetY = (MAX_FLOORS * FLOOR_HEIGHT) / 2.6
+  // Frame the camera on the actual built height, not the hypothetical
+  // 10-storey tower. Clamp to at least 1 floor so the empty baseline isn't
+  // framed at ground level.
+  const framedFloors = Math.max(1, builtCount)
+  const targetY = (framedFloors * FLOOR_HEIGHT) / 2.6
 
   const withRig = (fn) => () => {
     const c = controls.current
@@ -150,18 +174,34 @@ export default function HouseViewer({ floors }) {
     cam.position.x = c.target.x + Math.sin(a) * r
     cam.position.z = c.target.z + Math.cos(a) * r
   })
-  const view = (preset) => withRig((c, cam) => {
+  // Tween to a preset pose over ~450ms instead of snapping.
+  const tweenTo = (toPos, toTarget, duration = 450) => {
+    const c = controls.current
+    const cam = cameraRef.current
+    if (!c || !cam) return
+    tweenRef.current = {
+      fromPos: cam.position.clone(),
+      toPos: toPos.clone(),
+      fromTarget: c.target.clone(),
+      toTarget: toTarget.clone(),
+      start: performance.now(),
+      duration,
+    }
+    invalidateRef.current?.()
+  }
+  const view = (preset) => () => {
     const d = 45
-    if (preset === 'ees') cam.position.set(0, targetY, d)
-    else if (preset === 'kylg') cam.position.set(d, targetY, 0)
-    else if (preset === 'ylalt') cam.position.set(0, d + targetY, 0.01)
-    else if (preset === 'iso') cam.position.set(30, 22, 42)
-    c.target.set(0, targetY, 0)
-  })
-  const reset = withRig((c, cam) => {
-    cam.position.set(...initialCamPos)
-    c.target.set(0, targetY, 0)
-  })
+    let toPos
+    if (preset === 'ees') toPos = new THREE.Vector3(0, targetY, d)
+    else if (preset === 'kylg') toPos = new THREE.Vector3(d, targetY, 0)
+    else if (preset === 'ylalt') toPos = new THREE.Vector3(0, d + targetY, 0.01)
+    else toPos = new THREE.Vector3(30, 22, 42)
+    tweenTo(toPos, new THREE.Vector3(0, targetY, 0))
+  }
+  const reset = () => tweenTo(
+    new THREE.Vector3(...initialCamPos),
+    new THREE.Vector3(0, targetY, 0),
+  )
 
   return (
     <div className="viewer">
@@ -170,6 +210,7 @@ export default function HouseViewer({ floors }) {
         dpr={[1, 1.5]}
         gl={{
           antialias: true,
+          alpha: true,
           powerPreference: 'high-performance',
           toneMapping: THREE.ACESFilmicToneMapping,
           toneMappingExposure: 1.25,
@@ -177,7 +218,8 @@ export default function HouseViewer({ floors }) {
         }}
         camera={{ position: initialCamPos, fov: 40, near: 0.1, far: 500 }}
       >
-        <color attach="background" args={['#fff9e8']} />
+        {/* Canvas background is transparent — the warm radial gradient
+            lives in CSS so the plain WebGL clear doesn't cover it. */}
         <ambientLight intensity={0.9} />
         <hemisphereLight args={['#ffffff', '#d8d0b8', 0.8]} />
         <directionalLight position={[20, 36, 14]} intensity={1.6} />
@@ -185,6 +227,15 @@ export default function HouseViewer({ floors }) {
         <Suspense fallback={null}>
           <House floors={floors} />
         </Suspense>
+        <ContactShadows
+          position={[0, 0.01, 0]}
+          scale={70}
+          blur={2.6}
+          far={30}
+          opacity={0.35}
+          resolution={1024}
+          frames={1}
+        />
         {gridOn && (
           <Grid
             args={[80, 80]}
@@ -211,6 +262,7 @@ export default function HouseViewer({ floors }) {
           maxPolarAngle={Math.PI / 2.05}
         />
         <CameraGrabber cameraRef={cameraRef} invalidateRef={invalidateRef} onAzimuth={setAzimuth} />
+        <CameraTween tweenRef={tweenRef} controlsRef={controls} />
       </Canvas>
 
       <div className="viewer-hud" aria-hidden>
@@ -320,5 +372,4 @@ function LoadingOverlay() {
 BASELINE_URLS.forEach((url) => useGLTF.preload(url))
 VARIANT_STEPS.forEach((s) => s.variants.forEach((v) => useGLTF.preload(v.url)))
 TOGGLE_STEPS.forEach((s) => useGLTF.preload(LAYERS[s.id].url))
-useGLTF.preload(TREPIKODA_GROUND_URL)
-useGLTF.preload(TREPIKODA_UPPER_URL)
+Object.values(TREPIKODA_SEGMENTS).forEach((seg) => useGLTF.preload(seg.url))
