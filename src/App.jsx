@@ -1,7 +1,7 @@
 import { lazy, Suspense, useEffect, useState } from 'react'
 import Sidebar from './Sidebar.jsx'
 import { FLOOR_STEPS, MAX_FLOORS } from './config.js'
-import { canSelectFloor, isFloorComplete } from './floorState.js'
+import { canSelectFloor, isFloorComplete, roofFloorId } from './floorState.js'
 
 // Lazy-load the 3D viewer so three.js + R3F don't block the initial
 // HTML/CSS paint. UI shell appears instantly while the heavy chunk streams.
@@ -57,7 +57,9 @@ export default function App() {
         }
       } else if (e.key === 'ArrowRight') {
         const curr = floors.find((f) => f.id === selectedFloorId)
-        if (selectedFloorId < MAX_FLOORS && isFloorComplete(curr)) {
+        const roof = roofFloorId(floors)
+        const roofBlocks = roof !== null && selectedFloorId >= roof
+        if (selectedFloorId < MAX_FLOORS && isFloorComplete(curr) && !roofBlocks) {
           setSelectedFloorId(selectedFloorId + 1)
           e.preventDefault()
         }

@@ -1,11 +1,13 @@
-import { useEffect, useRef } from 'react'
-import { FLOOR_STEPS, LAYERS, MAX_FLOORS } from './config.js'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import Modal from './Modal.jsx'
+import { FLOOR_STEPS, KARKASS_VARIANTS, LAYERS, MAX_FLOORS } from './config.js'
 import {
   canSelectFloor,
   floorProgress,
   isFloorComplete,
   isStepDone,
   isStepEnabled,
+  roofFloorId,
 } from './floorState.js'
 
 function VariantGrid({ step, selectedId, enabled, onPick }) {
@@ -50,6 +52,46 @@ const chipsGridStyle = {
   gridTemplateColumns: `repeat(${MAX_FLOORS}, minmax(0, 1fr))`,
 }
 
+function karkassLabel(id) {
+  return KARKASS_VARIANTS.find((v) => v.id === id)?.label ?? id
+}
+
+function BuildingSummary({ floors, roofId }) {
+  const builtFloors = floors.filter((f) => f.id <= (roofId ?? MAX_FLOORS) && (f.karkass || Object.keys(LAYERS).some((k) => f[k])))
+  const karkassBreakdown = useMemo(() => {
+    const counts = {}
+    builtFloors.forEach((f) => {
+      if (!f.karkass) return
+      counts[f.karkass] = (counts[f.karkass] ?? 0) + 1
+    })
+    return counts
+  }, [builtFloors])
+
+  return (
+    <div className="summary">
+      <div className="summary-row">
+        <span>Korruseid</span>
+        <strong>{roofId ?? builtFloors.length}</strong>
+      </div>
+      <div className="summary-row">
+        <span>Katus paigaldatud korrusel</span>
+        <strong>{roofId ?? '—'}</strong>
+      </div>
+      <div className="summary-block">
+        <span>Karkassid</span>
+        <ul>
+          {Object.entries(karkassBreakdown).map(([id, n]) => (
+            <li key={id}>
+              <strong>{n}×</strong> {karkassLabel(id)}
+            </li>
+          ))}
+          {Object.keys(karkassBreakdown).length === 0 && <li>—</li>}
+        </ul>
+      </div>
+    </div>
+  )
+}
+
 export default function Sidebar({
   floors,
   selectedFloorId,
@@ -62,36 +104,53 @@ export default function Sidebar({
   const doneCount = floors.filter(isFloorComplete).length
   const canGoPrev = selectedFloorId > 1
   const complete = isFloorComplete(floor)
-  const hasNextFloor = selectedFloorId < MAX_FLOORS
+  const roofId = roofFloorId(floors)
+  const buildingSubmittable = roofId !== null
+  const roofOnThisFloor = roofId === selectedFloorId
+  const hasNextFloor = selectedFloorId < MAX_FLOORS && !buildingSubmittable
   const canGoNext = hasNextFloor && complete
   const progress = floorProgress(floor)
   const progressPct = Math.round((progress.done / progress.total) * 100)
-  const buildingDone = doneCount === MAX_FLOORS
 
-  // Reset scroll to top whenever the user navigates to another floor so the
-  // steps list always starts at step 1, not wherever we left off.
+  const [confirmReset, setConfirmReset] = useState(false)
+  const [showSubmit, setShowSubmit] = useState(false)
+
   const panelRef = useRef(null)
   useEffect(() => {
     if (panelRef.current) panelRef.current.scrollTop = 0
   }, [selectedFloorId])
 
-  // When the current floor becomes complete, nudge the confirm card into
-  // view so the user doesn't miss it (especially on long steps list).
   const confirmRef = useRef(null)
   useEffect(() => {
     if (complete && confirmRef.current) {
       confirmRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
     }
-  }, [complete])
+  }, [complete, roofOnThisFloor])
 
-  const handleReset = () => {
-    const anyWork = floors.some((f) => FLOOR_STEPS.some((s) => isStepDone(f, s)))
-    if (anyWork && !window.confirm('Kas kustutada kõik korrused ja alustada otsast?')) return
+  const anyWork = floors.some((f) => FLOOR_STEPS.some((s) => isStepDone(f, s)))
+
+  const handleResetClick = () => {
+    if (!anyWork) {
+      onReset()
+      return
+    }
+    setConfirmReset(true)
+  }
+  const confirmedReset = () => {
+    setConfirmReset(false)
     onReset()
   }
 
   const handleConfirmFloor = () => {
-    if (hasNextFloor) onSelectFloor(selectedFloorId + 1)
+    if (buildingSubmittable) {
+      setShowSubmit(true)
+    } else if (hasNextFloor) {
+      onSelectFloor(selectedFloorId + 1)
+    }
+  }
+
+  const handleSubmit = () => {
+    setShowSubmit(true)
   }
 
   return (
@@ -127,16 +186,22 @@ export default function Sidebar({
             const done = isFloorComplete(f)
             const enabled = canSelectFloor(floors, f.id)
             const active = f.id === selectedFloorId
+            const isRoof = roofId === f.id
+            const lockedByRoof = roofId !== null && f.id > roofId
             return (
               <button
                 key={f.id}
                 type="button"
-                className={`floor-chip ${done ? 'is-done' : ''} ${active ? 'is-active' : ''} ${!enabled ? 'is-locked' : ''}`}
+                className={`floor-chip ${done ? 'is-done' : ''} ${active ? 'is-active' : ''} ${!enabled ? 'is-locked' : ''} ${isRoof ? 'is-roof' : ''}`}
                 disabled={!enabled}
                 onClick={() => onSelectFloor(f.id)}
                 aria-label={`Korrus ${f.id}`}
                 aria-current={active ? 'step' : undefined}
-                title={`Korrus ${f.id}${f.id <= 9 ? ` (${f.id})` : ''}`}
+                title={
+                  lockedByRoof
+                    ? 'Katus paigaldatud — ehitis on lõpetatud'
+                    : `Korrus ${f.id}${f.id <= 9 ? ` (${f.id})` : ''}`
+                }
               >
                 {f.id}
               </button>
@@ -212,21 +277,37 @@ export default function Sidebar({
         </ol>
 
         {complete && (
-          <div className="floor-complete" ref={confirmRef} role="status">
+          <div
+            className={`floor-complete ${roofOnThisFloor ? 'is-final' : ''}`}
+            ref={confirmRef}
+            role="status"
+          >
             <div className="floor-complete-head">
-              <span className="floor-complete-icon" aria-hidden>✓</span>
+              <span className="floor-complete-icon" aria-hidden>{roofOnThisFloor ? '🏠' : '✓'}</span>
               <div>
-                <strong>Korrus {selectedFloorId} valmis</strong>
+                <strong>
+                  {roofOnThisFloor
+                    ? 'Ehitis on valmis'
+                    : `Korrus ${selectedFloorId} valmis`}
+                </strong>
                 <p>
-                  {hasNextFloor
-                    ? 'Kõik kohustuslikud sammud tehtud. Lisa soovi korral valikulised või kinnita ja liigu järgmisele korrusele.'
-                    : buildingDone
-                      ? 'Oled ehitanud kõik 10 korrust — hoone on valmis.'
-                      : 'Viimane korrus valmis.'}
+                  {roofOnThisFloor
+                    ? 'Paigaldasid katuse — ehitamine on lõpetatud. Esita oma ehitis.'
+                    : hasNextFloor
+                      ? 'Kõik kohustuslikud sammud tehtud. Lisa soovi korral valikulised või kinnita ja liigu järgmisele korrusele.'
+                      : 'Viimane korrus valmis. Paigalda katus ja esita ehitis.'}
                 </p>
               </div>
             </div>
-            {hasNextFloor && (
+            {roofOnThisFloor ? (
+              <button
+                type="button"
+                className="btn btn-primary is-pulse"
+                onClick={handleSubmit}
+              >
+                Esita ehitis →
+              </button>
+            ) : hasNextFloor ? (
               <button
                 type="button"
                 className="btn btn-primary is-pulse"
@@ -234,16 +315,62 @@ export default function Sidebar({
               >
                 Kinnita korrus {selectedFloorId} →
               </button>
-            )}
+            ) : null}
           </div>
         )}
       </div>
 
       <footer className="sidebar-foot">
-        <button type="button" className="btn btn-ghost btn-full" onClick={handleReset}>
+        <button type="button" className="btn btn-ghost btn-full" onClick={handleResetClick}>
           Alusta uuesti
         </button>
       </footer>
+
+      <Modal
+        open={confirmReset}
+        onClose={() => setConfirmReset(false)}
+        title="Alusta uuesti?"
+        tone="warning"
+        actions={
+          <>
+            <button type="button" className="btn btn-ghost" onClick={() => setConfirmReset(false)}>
+              Tühista
+            </button>
+            <button type="button" className="btn btn-primary" onClick={confirmedReset}>
+              Jah, kustuta kõik
+            </button>
+          </>
+        }
+      >
+        <p>Kõik ehitatud korrused kaovad. Seda ei saa tagasi võtta.</p>
+      </Modal>
+
+      <Modal
+        open={showSubmit}
+        onClose={() => setShowSubmit(false)}
+        title="Ehitis esitatud"
+        tone="success"
+        actions={
+          <>
+            <button type="button" className="btn btn-ghost" onClick={() => setShowSubmit(false)}>
+              Sulge
+            </button>
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={() => {
+                setShowSubmit(false)
+                onReset()
+              }}
+            >
+              Alusta uut ehitist
+            </button>
+          </>
+        }
+      >
+        <p className="modal-lead">Sinu puitmaja on esitatud. Vaata kokkuvõtet:</p>
+        <BuildingSummary floors={floors} roofId={roofId} />
+      </Modal>
     </aside>
   )
 }

@@ -26,11 +26,24 @@ export function isFloorStarted(floor) {
 }
 
 // Can the user jump to this floor? First floor always; later floors only
-// once the floor below is complete.
+// once the floor below is complete. Floors above an installed roof are
+// locked — the roof terminates construction.
 export function canSelectFloor(floors, floorId) {
+  const roof = roofFloorId(floors)
+  if (roof !== null && floorId > roof) return false
   if (floorId === 1) return true
   const prev = floors.find((f) => f.id === floorId - 1)
   return prev ? isFloorComplete(prev) : false
+}
+
+// Floor id where the roof was placed (katus toggled on), or null.
+export function roofFloorId(floors) {
+  const f = floors.find((x) => x.katus === true)
+  return f ? f.id : null
+}
+
+export function isBuildingSubmitted(floors) {
+  return roofFloorId(floors) !== null
 }
 
 // Required-step progress on a floor: {done, total}.
