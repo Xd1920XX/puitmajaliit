@@ -16,10 +16,14 @@ import {
   MAX_FLOORS,
   TREPIKODA_SEGMENTS,
 } from './config.js'
-import { isFloorComplete, isFloorStarted, stepApplies } from './floorState.js'
+import { isFloorComplete, stepApplies } from './floorState.js'
 
 const VARIANT_STEPS = FLOOR_STEPS.filter((s) => s.kind === 'variant')
 const TOGGLE_STEPS = FLOOR_STEPS.filter((s) => s.kind === 'toggle')
+// Toggle steps whose GLB lives in LAYERS. `trepikoda` is a toggle step but
+// its segments live in TREPIKODA_SEGMENTS and render via a dedicated code
+// path (1K vs 2K per floor index), so skip it in the generic layer loop.
+const LAYER_TOGGLE_STEPS = TOGGLE_STEPS.filter((s) => LAYERS[s.id])
 
 const configuredScenes = new WeakSet()
 function configureScene(scene) {
@@ -75,9 +79,11 @@ function stepCoveredFromAbove(step, floorAbove) {
 function Floor({ index, floor, floorAbove, collapsed }) {
   const isGround = index === 0
   const trepikoda = isGround ? TREPIKODA_SEGMENTS.ground : TREPIKODA_SEGMENTS.upper
+  // Trepikoda is now driven by the per-floor step toggle (user opts in),
+  // not auto. 1K segment on floor 1, 2K on upper floors.
   return (
     <group position={[0, index * FLOOR_HEIGHT, 0]}>
-      {isFloorStarted(floor) && (
+      {floor.trepikoda && (
         <Model url={trepikoda.url} yOffset={trepikoda.yOffset ?? 0} />
       )}
       {VARIANT_STEPS.map((step) => {
@@ -88,7 +94,7 @@ function Floor({ index, floor, floorAbove, collapsed }) {
           <Model key={step.id} url={entry.url} yOffset={entry.yOffset ?? 0} />
         ) : null
       })}
-      {TOGGLE_STEPS.map((step) => {
+      {LAYER_TOGGLE_STEPS.map((step) => {
         if (!floor[step.id]) return null
         // Skip layers that don't apply to this floor's configuration
         // (e.g. soojustusvill when karkass is CLT) even if the toggle is
@@ -410,5 +416,5 @@ function LoadingOverlay() {
 // Preload every GLB up front so building a floor doesn't stall on network I/O.
 BASELINE_URLS.forEach((url) => useGLTF.preload(url))
 VARIANT_STEPS.forEach((s) => s.variants.forEach((v) => useGLTF.preload(v.url)))
-TOGGLE_STEPS.forEach((s) => useGLTF.preload(LAYERS[s.id].url))
+LAYER_TOGGLE_STEPS.forEach((s) => useGLTF.preload(LAYERS[s.id].url))
 Object.values(TREPIKODA_SEGMENTS).forEach((seg) => useGLTF.preload(seg.url))

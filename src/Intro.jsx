@@ -14,14 +14,14 @@ const REQUIRED_MATERIALS = [
   {
     icon: '◫',
     label: 'Jäikusseinad OSB',
-    what: 'OSB plaadid karkassi peale, lisavad jäikust tuulekoormuste vastu.',
-    when: 'Karkassi järel, enne soojustust.',
+    what: 'OSB plaadid karkassi peale. Vali naelutussamm: 50 / 70 / 100 mm.',
+    when: 'Karkassi järel — ainult puitkarkassi puhul. CLT paneel ei vaja.',
   },
   {
     icon: '≋',
     label: 'Soojustusvill',
     what: 'Soojustab välisseinad.',
-    when: 'OSB jäikusseinte peale, enne sisekatet.',
+    when: 'OSB jäikusseinte juures — ainult puitkarkassi puhul.',
   },
   {
     icon: '▭',
@@ -33,7 +33,13 @@ const REQUIRED_MATERIALS = [
     icon: '▌',
     label: 'Fassaad',
     what: 'Välimine kate — kaitseb seinad ilmastiku eest.',
-    when: 'Peale sisekatte, enne lage.',
+    when: 'Peale kipsi, enne trepikoda.',
+  },
+  {
+    icon: '↗',
+    label: 'Trepikoda',
+    what: 'Trepikoja segment — 1K maapinnal, 2K ülemistel korrustel.',
+    when: 'Peale fassaadi — lisada igal korrusel.',
   },
   {
     icon: '═',
@@ -47,29 +53,20 @@ const OPTIONAL_MATERIALS = [
   {
     icon: '≋',
     label: 'Soojustus (vannituba)',
-    what: 'Täiendav soojustus niisketes ruumides.',
-    when: 'Enne kipsi — ainult kui korrusel on vannituba.',
+    what: 'Täiendav soojustus niisketes ruumides. CLT puhul ainus võimalik villaraim.',
+    when: 'Enne kipsi — kõik karkassitüübid toetavad.',
   },
   {
     icon: '◰',
     label: 'Rõdu',
     what: 'Välisrõdu konstruktsioon.',
-    when: 'Peale kipsi, enne fassaadi — ainult kui korrusel on rõdu.',
+    when: 'Peale trepikoda, enne lage — ainult kui korrusel on rõdu.',
   },
   {
     icon: '🏠',
     label: 'Katus',
     what: 'Lõpetab ehitise. Pärast katuse paigaldust rohkem korruseid lisada ei saa.',
     when: 'Ainult 10. korrusele — kõik eelnevad korrused peavad olema valmis.',
-  },
-]
-
-const AUTO_MATERIALS = [
-  {
-    icon: '↗',
-    label: 'Trepikoda',
-    what: 'Trepikoja segment — maapinna juurest kuni iga ehitatud korruseni.',
-    when: 'Lisandub automaatselt vastavalt ehitatud korruste arvule.',
   },
 ]
 
@@ -80,8 +77,9 @@ const ORDER_SEQUENCE = [
   { label: 'Soojustus' },
   { label: 'Vannituba', optional: true },
   { label: 'Kips' },
-  { label: 'Rõdu', optional: true },
   { label: 'Fassaad' },
+  { label: 'Trepikoda' },
+  { label: 'Rõdu', optional: true },
   { label: 'Lagi' },
   { label: 'Katus', optional: true, terminal: true },
 ]
@@ -148,13 +146,6 @@ export default function Intro({ onStart }) {
           <h2>Valikulised</h2>
           <div className="material-grid">
             {OPTIONAL_MATERIALS.map((m) => (
-              <MaterialCard key={m.label} {...m} />
-            ))}
-          </div>
-
-          <h2>Automaatsed</h2>
-          <div className="material-grid">
-            {AUTO_MATERIALS.map((m) => (
               <MaterialCard key={m.label} {...m} />
             ))}
           </div>

@@ -289,7 +289,7 @@ export default function Sidebar({
                     />
                   ) : (
                     <LayerToggle
-                      label={LAYERS[step.id].label}
+                      label={LAYERS[step.id]?.label ?? step.label}
                       on={floor[step.id]}
                       enabled={enabled}
                       onClick={() => onToggleLayer(selectedFloorId, step.id)}

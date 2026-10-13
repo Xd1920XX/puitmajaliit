@@ -21,6 +21,14 @@ export const KARKASS_VARIANTS = [
   { id: 'CLT', label: 'CLT paneel',         url: '/GLB/Karkass_CLT.glb' },
 ]
 
+// Jäikusseinad OSB — naelutussamm variants. Only available for timber
+// frames (300/400/600). CLT panels don't need separate stiffening.
+export const JAIKUS_VARIANTS = [
+  { id: '50',  label: 'Naelutussamm 50 mm',  url: '/GLB/Jaikusseinad_OSB.glb' },
+  { id: '70',  label: 'Naelutussamm 70 mm',  url: '/GLB/Jaikusseinad_OSB.glb' },
+  { id: '100', label: 'Naelutussamm 100 mm', url: '/GLB/Jaikusseinad_OSB.glb' },
+]
+
 // Trepikoda — automatic per-floor stairwell segments.
 // `ground` lands on floor 1; `upper` repeats for floors 2..N.
 // `yOffset` compensates for GLB-origin quirks (upper's geometry sits one
@@ -31,9 +39,9 @@ export const TREPIKODA_SEGMENTS = {
 }
 
 // Toggleable layers within a floor. Key = state field on Floor object.
-// `yOffset` optional (defaults to 0).
+// `yOffset` optional (defaults to 0). Variant-kind steps (karkass, jaikus)
+// list their URLs in their variants array, not here.
 export const LAYERS = {
-  jaikus:              { label: 'Jäikusseinad OSB',       url: '/GLB/Jaikusseinad_OSB.glb' },
   soojustus:           { label: 'Soojustusvill',          url: '/GLB/Soojustusvill.glb' },
   soojustus_vannituba: { label: 'Soojustus (vannituba)',  url: '/GLB/Soojustusvill_Vannituba.glb' },
   kips:                { label: 'Kips (2-kihiline)',      url: '/GLB/Kips_2kihiline.glb' },
@@ -55,14 +63,15 @@ export const LAYERS = {
 // another floor, so lower storeys don't carry heavy frame/insulation GLBs
 // behind the façade. Visible exterior layers (facade, balcony, roof) stay.
 export const FLOOR_STEPS = [
-  { id: 'porand',              label: 'Põrand',                kind: 'toggle',                              hint: 'Põrandakonstruktsioon — esimene samm korruse ehitamisel.' },
-  { id: 'karkass',             label: 'Karkass',               kind: 'variant', variants: KARKASS_VARIANTS, hideWhenAboveComplete: true, hint: 'Vali kandev karkass — 300/400/600 mm või CLT.' },
-  { id: 'jaikus',              label: 'Jäikusseinad OSB',      kind: 'toggle',                              hint: 'OSB jäikusseinad karkassi peale.' },
+  { id: 'porand',              label: 'Põrand',                kind: 'toggle',                                                                     hint: 'Põrandakonstruktsioon — esimene samm korruse ehitamisel.' },
+  { id: 'karkass',             label: 'Karkass',               kind: 'variant', variants: KARKASS_VARIANTS, hideWhenAboveComplete: true,           hint: 'Vali kandev karkass — 300/400/600 mm või CLT.' },
+  { id: 'jaikus',              label: 'Jäikusseinad OSB',      kind: 'variant', variants: JAIKUS_VARIANTS,  skipWhenVariant: { karkass: ['CLT'] }, hint: 'OSB jäikusseinad — vali naelutussamm. CLT paneeli puhul ei kehti.' },
   { id: 'soojustus',           label: 'Soojustusvill',         kind: 'toggle',                              skipWhenVariant: { karkass: ['CLT'] }, hint: 'Soojustusvill seintes.' },
-  { id: 'soojustus_vannituba', label: 'Soojustus (vannituba)', kind: 'toggle',  optional: true,             skipWhenVariant: { karkass: ['CLT'] }, hint: 'Täiendav vannitoa soojustus. Lisa vajadusel.' },
-  { id: 'kips',                label: 'Kips',                  kind: 'toggle',                              hint: 'Sisemine 2-kihiline kipsplaat.' },
-  { id: 'rodu',                label: 'Rõdu',                  kind: 'toggle',  optional: true,             hint: 'Rõdu konstruktsioon. Lisa soovi korral.' },
-  { id: 'fassaad',             label: 'Fassaad',               kind: 'toggle',                              hint: 'Välimine fassaadikate.' },
-  { id: 'lagi',                label: 'Lagi',                  kind: 'toggle',                              hint: 'Laekonstruktsioon — sulgeb korruse.' },
-  { id: 'katus',               label: 'Katus',                 kind: 'toggle',  optional: true,             hint: 'Katusekate — ainult 10. korrusele, lõpetab ehitise.' },
+  { id: 'soojustus_vannituba', label: 'Soojustus (vannituba)', kind: 'toggle',  optional: true,                                                    hint: 'Täiendav vannitoa soojustus. Lisa vajadusel.' },
+  { id: 'kips',                label: 'Kips',                  kind: 'toggle',                                                                     hint: 'Sisemine 2-kihiline kipsplaat.' },
+  { id: 'fassaad',             label: 'Fassaad',               kind: 'toggle',                                                                     hint: 'Välimine fassaadikate.' },
+  { id: 'trepikoda',           label: 'Trepikoda',             kind: 'toggle',                                                                     hint: 'Lisa trepikoja segment (1K maapinnal, 2K ülemistel korrustel).' },
+  { id: 'rodu',                label: 'Rõdu',                  kind: 'toggle',  optional: true,                                                    hint: 'Rõdu konstruktsioon. Lisa soovi korral.' },
+  { id: 'lagi',                label: 'Lagi',                  kind: 'toggle',                                                                     hint: 'Laekonstruktsioon — sulgeb korruse.' },
+  { id: 'katus',               label: 'Katus',                 kind: 'toggle',  optional: true,                                                    hint: 'Katusekate — ainult 10. korrusele, lõpetab ehitise.' },
 ]
