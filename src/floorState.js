@@ -1,4 +1,4 @@
-import { FLOOR_STEPS } from './config.js'
+import { FLOOR_STEPS, MAX_FLOORS } from './config.js'
 
 export function isStepDone(floor, step) {
   return step.kind === 'variant'
@@ -6,23 +6,55 @@ export function isStepDone(floor, step) {
     : floor[step.id] === true
 }
 
+// Whether this step applies to the current floor configuration.
+// `skipWhenVariant: { karkass: ['CLT'] }` means: skip entirely if karkass
+// is CLT. Hidden from Sidebar + treated as satisfied in gating/completion.
+export function stepApplies(step, floor) {
+  if (!step.skipWhenVariant) return true
+  for (const [variantStepId, excludedIds] of Object.entries(step.skipWhenVariant)) {
+    if (excludedIds.includes(floor[variantStepId])) return false
+  }
+  return true
+}
+
+// Satisfied = either does not apply, or is done. Used by gates/completion.
+export function isStepSatisfied(floor, step) {
+  if (!stepApplies(step, floor)) return true
+  return isStepDone(floor, step)
+}
+
 // Linear gate — a required prior step blocks subsequent steps.
-// Optional steps never block.
+// Optional steps never block; non-applicable steps count as satisfied.
 export function isStepEnabled(floor, index) {
   for (let i = 0; i < index; i++) {
     const prior = FLOOR_STEPS[i]
     if (prior.optional) continue
-    if (!isStepDone(floor, prior)) return false
+    if (!isStepSatisfied(floor, prior)) return false
   }
   return true
 }
 
 export function isFloorComplete(floor) {
-  return FLOOR_STEPS.every((s) => s.optional || isStepDone(floor, s))
+  return FLOOR_STEPS.every((s) => s.optional || isStepSatisfied(floor, s))
 }
 
 export function isFloorStarted(floor) {
   return FLOOR_STEPS.some((s) => isStepDone(floor, s))
+}
+
+// Highest floor id with any work started, or 0 if the build is empty.
+export function highestStartedFloorId(floors) {
+  let hi = 0
+  for (const f of floors) {
+    if (isFloorStarted(f)) hi = Math.max(hi, f.id)
+  }
+  return hi
+}
+
+// Katus is only addable on the final storey (MAX_FLOORS). The user must
+// build the full tower before being able to cap it with a roof.
+export function canAddKatus(_floors, floorId) {
+  return floorId === MAX_FLOORS
 }
 
 // Can the user jump to this floor? First floor always; later floors only
@@ -46,9 +78,10 @@ export function isBuildingSubmitted(floors) {
   return roofFloorId(floors) !== null
 }
 
-// Required-step progress on a floor: {done, total}.
+// Required-step progress on a floor: {done, total}. Non-applicable steps
+// (e.g. soojustus when karkass is CLT) drop out of the denominator.
 export function floorProgress(floor) {
-  const required = FLOOR_STEPS.filter((s) => !s.optional)
+  const required = FLOOR_STEPS.filter((s) => !s.optional && stepApplies(s, floor))
   const done = required.filter((s) => isStepDone(floor, s)).length
   return { done, total: required.length }
 }

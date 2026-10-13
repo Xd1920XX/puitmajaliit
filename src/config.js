@@ -49,15 +49,20 @@ export const LAYERS = {
 // every non-optional step is done. Order follows construction sequence:
 // floor slab first, frame + insulation + gypsum + facade in between, ceiling
 // slab last (closes the floor), roof optional on top of all.
+//
+// `hideWhenCollapsed: true` marks a layer as internal/structural — hidden
+// from the viewer once the floor is complete AND the user has moved on to
+// another floor, so lower storeys don't carry heavy frame/insulation GLBs
+// behind the façade. Visible exterior layers (facade, balcony, roof) stay.
 export const FLOOR_STEPS = [
   { id: 'porand',              label: 'Põrand',                kind: 'toggle',                              hint: 'Põrandakonstruktsioon — esimene samm korruse ehitamisel.' },
-  { id: 'karkass',             label: 'Karkass',               kind: 'variant', variants: KARKASS_VARIANTS, hint: 'Vali kandev karkass — 300/400/600 mm või CLT.' },
+  { id: 'karkass',             label: 'Karkass',               kind: 'variant', variants: KARKASS_VARIANTS, hideWhenAboveComplete: true, hint: 'Vali kandev karkass — 300/400/600 mm või CLT.' },
   { id: 'jaikus',              label: 'Jäikusseinad OSB',      kind: 'toggle',                              hint: 'OSB jäikusseinad karkassi peale.' },
-  { id: 'soojustus',           label: 'Soojustusvill',         kind: 'toggle',                              hint: 'Soojustusvill seintes.' },
-  { id: 'soojustus_vannituba', label: 'Soojustus (vannituba)', kind: 'toggle',  optional: true,             hint: 'Täiendav vannitoa soojustus. Lisa vajadusel.' },
+  { id: 'soojustus',           label: 'Soojustusvill',         kind: 'toggle',                              skipWhenVariant: { karkass: ['CLT'] }, hint: 'Soojustusvill seintes.' },
+  { id: 'soojustus_vannituba', label: 'Soojustus (vannituba)', kind: 'toggle',  optional: true,             skipWhenVariant: { karkass: ['CLT'] }, hint: 'Täiendav vannitoa soojustus. Lisa vajadusel.' },
   { id: 'kips',                label: 'Kips',                  kind: 'toggle',                              hint: 'Sisemine 2-kihiline kipsplaat.' },
   { id: 'rodu',                label: 'Rõdu',                  kind: 'toggle',  optional: true,             hint: 'Rõdu konstruktsioon. Lisa soovi korral.' },
   { id: 'fassaad',             label: 'Fassaad',               kind: 'toggle',                              hint: 'Välimine fassaadikate.' },
   { id: 'lagi',                label: 'Lagi',                  kind: 'toggle',                              hint: 'Laekonstruktsioon — sulgeb korruse.' },
-  { id: 'katus',               label: 'Katus',                 kind: 'toggle',  optional: true,             hint: 'Katusekate — tavaliselt ülemisel korrusel.' },
+  { id: 'katus',               label: 'Katus',                 kind: 'toggle',  optional: true,             hint: 'Katusekate — ainult 10. korrusele, lõpetab ehitise.' },
 ]

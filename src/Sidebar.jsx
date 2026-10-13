@@ -2,13 +2,16 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import Modal from './Modal.jsx'
 import { FLOOR_STEPS, KARKASS_VARIANTS, LAYERS, MAX_FLOORS } from './config.js'
 import {
+  canAddKatus,
   canSelectFloor,
   floorProgress,
   isFloorComplete,
   isStepDone,
   isStepEnabled,
   roofFloorId,
+  stepApplies,
 } from './floorState.js'
+import { formatTime } from './formatTime.js'
 
 function VariantGrid({ step, selectedId, enabled, onPick }) {
   return (
@@ -56,7 +59,7 @@ function karkassLabel(id) {
   return KARKASS_VARIANTS.find((v) => v.id === id)?.label ?? id
 }
 
-function BuildingSummary({ floors, roofId }) {
+function BuildingSummary({ floors, roofId, elapsedMs = 0 }) {
   const builtFloors = floors.filter((f) => f.id <= (roofId ?? MAX_FLOORS) && (f.karkass || Object.keys(LAYERS).some((k) => f[k])))
   const karkassBreakdown = useMemo(() => {
     const counts = {}
@@ -69,6 +72,10 @@ function BuildingSummary({ floors, roofId }) {
 
   return (
     <div className="summary">
+      <div className="summary-row">
+        <span>Aeg</span>
+        <strong>{formatTime(elapsedMs)}</strong>
+      </div>
       <div className="summary-row">
         <span>Korruseid</span>
         <strong>{roofId ?? builtFloors.length}</strong>
@@ -99,6 +106,8 @@ export default function Sidebar({
   onVariant,
   onToggleLayer,
   onReset,
+  elapsedMs = 0,
+  submitted = false,
 }) {
   const floor = floors.find((f) => f.id === selectedFloorId)
   const doneCount = floors.filter(isFloorComplete).length
@@ -163,6 +172,12 @@ export default function Sidebar({
         <div className="score-row">
           <span>Korruseid valmis</span>
           <strong>{doneCount} / {MAX_FLOORS}</strong>
+        </div>
+        <div className="score-row">
+          <span>Aeg {submitted && <em className="score-flag">lukus</em>}</span>
+          <strong className={`timer ${submitted ? 'is-stopped' : ''}`}>
+            {formatTime(elapsedMs)}
+          </strong>
         </div>
         <div className="score-row">
           <span>Punktid</span>
@@ -234,12 +249,21 @@ export default function Sidebar({
         </div>
         <ol className="steps">
           {FLOOR_STEPS.map((step, index) => {
-            const enabled = isStepEnabled(floor, index)
+            const notApplicable = !stepApplies(step, floor)
+            const baseEnabled = isStepEnabled(floor, index)
+            const katusBlocked =
+              step.id === 'katus' && !canAddKatus(floors, selectedFloorId)
+            const enabled = baseEnabled && !katusBlocked && !notApplicable
             const done = isStepDone(floor, step)
+            const hint = notApplicable
+              ? 'Ei kehti valitud karkassi puhul (CLT ei vaja soojustusvilla).'
+              : katusBlocked
+                ? `Katust saab lisada ainult ${MAX_FLOORS}. korrusele.`
+                : step.hint
             return (
               <li
                 key={step.id}
-                className={`step ${done ? 'is-done' : ''} ${!enabled ? 'is-locked' : ''} ${step.optional ? 'is-optional' : ''}`}
+                className={`step ${done ? 'is-done' : ''} ${!enabled ? 'is-locked' : ''} ${step.optional ? 'is-optional' : ''} ${notApplicable ? 'is-na' : ''}`}
               >
                 <div className="step-head">
                   <span className="step-num">{index + 1}</span>
@@ -247,11 +271,12 @@ export default function Sidebar({
                     <strong>
                       {step.label}
                       {step.optional && <span className="step-opt"> · valikuline</span>}
+                      {notApplicable && <span className="step-opt"> · ei kehti</span>}
                     </strong>
-                    <span className="step-hint">{step.hint}</span>
+                    <span className="step-hint">{hint}</span>
                   </div>
                   <span className="step-state">
-                    {done ? '✓' : enabled ? '' : '🔒'}
+                    {notApplicable ? '—' : done ? '✓' : enabled ? '' : '🔒'}
                   </span>
                 </div>
                 <div className="step-body">
@@ -369,7 +394,7 @@ export default function Sidebar({
         }
       >
         <p className="modal-lead">Sinu puitmaja on esitatud. Vaata kokkuvõtet:</p>
-        <BuildingSummary floors={floors} roofId={roofId} />
+        <BuildingSummary floors={floors} roofId={roofId} elapsedMs={elapsedMs} />
       </Modal>
     </aside>
   )

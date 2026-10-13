@@ -1,5 +1,6 @@
-import { lazy, Suspense, useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import Sidebar from './Sidebar.jsx'
+import Intro from './Intro.jsx'
 import { FLOOR_STEPS, MAX_FLOORS } from './config.js'
 import { canSelectFloor, isFloorComplete, roofFloorId } from './floorState.js'
 
@@ -23,6 +24,40 @@ export default function App() {
   const [floors, setFloors] = useState(initialFloors)
   const [selectedFloorId, setSelectedFloorId] = useState(1)
   const [sidebarOpen, setSidebarOpen] = useState(true)
+  const [introSeen, setIntroSeen] = useState(false)
+
+  // Build timer. Starts ticking once the user hits "Alusta"; freezes when
+  // the roof is placed (ehitis esitatud).
+  const [startedAt, setStartedAt] = useState(null)
+  const [elapsedMs, setElapsedMs] = useState(0)
+  const frozenRef = useRef(false)
+
+  const roofId = roofFloorId(floors)
+  const submitted = roofId !== null
+
+  useEffect(() => {
+    if (!introSeen || startedAt === null || submitted) return
+    const id = setInterval(() => {
+      setElapsedMs(Date.now() - startedAt)
+    }, 1000)
+    return () => clearInterval(id)
+  }, [introSeen, startedAt, submitted])
+
+  // Capture final elapsed exactly when the roof is placed so the submit
+  // modal shows a stable number rather than whatever the last tick was.
+  useEffect(() => {
+    if (submitted && !frozenRef.current && startedAt !== null) {
+      setElapsedMs(Date.now() - startedAt)
+      frozenRef.current = true
+    }
+    if (!submitted) frozenRef.current = false
+  }, [submitted, startedAt])
+
+  const startBuilding = () => {
+    setIntroSeen(true)
+    setStartedAt(Date.now())
+    setElapsedMs(0)
+  }
 
   const setVariant = (floorId, stepId, variantId) => {
     setFloors((prev) =>
@@ -39,12 +74,12 @@ export default function App() {
   const reset = () => {
     setFloors(initialFloors())
     setSelectedFloorId(1)
+    setStartedAt(Date.now())
+    setElapsedMs(0)
   }
 
-  // Keyboard navigation: ← / → move between floors (respecting the gate),
-  // 1..9 jump directly. Skip when focus is on an input/button being
-  // interacted with via keyboard so the user doesn't fight the UI.
   useEffect(() => {
+    if (!introSeen) return
     const onKey = (e) => {
       const tag = (e.target?.tagName || '').toLowerCase()
       if (tag === 'input' || tag === 'textarea' || e.target?.isContentEditable) return
@@ -73,27 +108,29 @@ export default function App() {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [floors, selectedFloorId])
+  }, [introSeen, floors, selectedFloorId])
 
   return (
     <div className="app">
-      <main className={`layout ${sidebarOpen ? '' : 'layout-full'}`}>
+      <main className={`layout ${sidebarOpen && introSeen ? '' : 'layout-full'}`}>
         <section className="stage">
           <Suspense fallback={<ViewerBoot />}>
-            <HouseViewer floors={floors} />
+            <HouseViewer floors={floors} selectedFloorId={selectedFloorId} />
           </Suspense>
-          <button
-            type="button"
-            className="sidebar-toggle"
-            onClick={() => setSidebarOpen((v) => !v)}
-            aria-pressed={sidebarOpen}
-            title={sidebarOpen ? 'Peida paneel' : 'Näita paneeli'}
-            aria-label={sidebarOpen ? 'Peida paneel' : 'Näita paneeli'}
-          >
-            {sidebarOpen ? '›' : '‹'}
-          </button>
+          {introSeen && (
+            <button
+              type="button"
+              className="sidebar-toggle"
+              onClick={() => setSidebarOpen((v) => !v)}
+              aria-pressed={sidebarOpen}
+              title={sidebarOpen ? 'Peida paneel' : 'Näita paneeli'}
+              aria-label={sidebarOpen ? 'Peida paneel' : 'Näita paneeli'}
+            >
+              {sidebarOpen ? '›' : '‹'}
+            </button>
+          )}
         </section>
-        {sidebarOpen && (
+        {introSeen && sidebarOpen && (
           <Sidebar
             floors={floors}
             selectedFloorId={selectedFloorId}
@@ -101,9 +138,12 @@ export default function App() {
             onVariant={setVariant}
             onToggleLayer={toggleLayer}
             onReset={reset}
+            elapsedMs={elapsedMs}
+            submitted={submitted}
           />
         )}
       </main>
+      {!introSeen && <Intro onStart={startBuilding} />}
     </div>
   )
 }

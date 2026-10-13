@@ -16,7 +16,7 @@ import {
   MAX_FLOORS,
   TREPIKODA_SEGMENTS,
 } from './config.js'
-import { isFloorComplete, isFloorStarted } from './floorState.js'
+import { isFloorComplete, isFloorStarted, stepApplies } from './floorState.js'
 
 const VARIANT_STEPS = FLOOR_STEPS.filter((s) => s.kind === 'variant')
 const TOGGLE_STEPS = FLOOR_STEPS.filter((s) => s.kind === 'toggle')
@@ -60,7 +60,19 @@ function variantEntry(step, floor) {
   return step.variants.find((v) => v.id === id) ?? null
 }
 
-function Floor({ index, floor }) {
+function stepCoveredFromAbove(step, floorAbove) {
+  // `hideWhenAboveComplete`: the layer is only safe to hide once the next
+  // storey is fully built — the fresh frame + slabs above seal this one.
+  // `hideWhenAboveHas`: narrower — hide as soon as a specific layer id is
+  // placed on the floor above (kept for finer-grained future rules).
+  if (step.hideWhenAboveComplete && floorAbove && isFloorComplete(floorAbove)) {
+    return true
+  }
+  if (step.hideWhenAboveHas && floorAbove?.[step.hideWhenAboveHas]) return true
+  return false
+}
+
+function Floor({ index, floor, floorAbove, collapsed }) {
   const isGround = index === 0
   const trepikoda = isGround ? TREPIKODA_SEGMENTS.ground : TREPIKODA_SEGMENTS.upper
   return (
@@ -69,6 +81,8 @@ function Floor({ index, floor }) {
         <Model url={trepikoda.url} yOffset={trepikoda.yOffset ?? 0} />
       )}
       {VARIANT_STEPS.map((step) => {
+        if (collapsed && step.hideWhenCollapsed) return null
+        if (stepCoveredFromAbove(step, floorAbove)) return null
         const entry = variantEntry(step, floor)
         return entry ? (
           <Model key={step.id} url={entry.url} yOffset={entry.yOffset ?? 0} />
@@ -76,6 +90,16 @@ function Floor({ index, floor }) {
       })}
       {TOGGLE_STEPS.map((step) => {
         if (!floor[step.id]) return null
+        // Skip layers that don't apply to this floor's configuration
+        // (e.g. soojustusvill when karkass is CLT) even if the toggle is
+        // still truthy from an earlier karkass choice.
+        if (!stepApplies(step, floor)) return null
+        if (collapsed && step.hideWhenCollapsed) return null
+        if (stepCoveredFromAbove(step, floorAbove)) return null
+        // Visual coverage — if any layer in `hiddenBy` is also on, this
+        // layer sits behind it and would never be seen. Skip the GLB to
+        // avoid rendering invisible geometry.
+        if (step.hiddenBy && step.hiddenBy.some((id) => floor[id])) return null
         const layer = LAYERS[step.id]
         return <Model key={step.id} url={layer.url} yOffset={layer.yOffset ?? 0} />
       })}
@@ -83,15 +107,30 @@ function Floor({ index, floor }) {
   )
 }
 
-function House({ floors }) {
+function House({ floors, selectedFloorId }) {
   return (
     <>
       {BASELINE_URLS.map((url) => (
         <Model key={url} url={url} />
       ))}
-      {floors.map((f, i) => (
-        <Floor key={f.id} index={i} floor={f} />
-      ))}
+      {floors.map((f, i) => {
+        // Collapse any completed floor the user has moved away from:
+        // interior frame/insulation/gypsum/floor-slab/ceiling GLBs stay
+        // out of the scene, cutting GPU + draw-call load. Facade / roof /
+        // balcony (not marked hideWhenCollapsed) remain visible so the
+        // building keeps its outer shell.
+        const collapsed = f.id !== selectedFloorId && isFloorComplete(f)
+        const floorAbove = floors[i + 1] ?? null
+        return (
+          <Floor
+            key={f.id}
+            index={i}
+            floor={f}
+            floorAbove={floorAbove}
+            collapsed={collapsed}
+          />
+        )
+      })}
     </>
   )
 }
@@ -132,7 +171,7 @@ function CameraTween({ tweenRef, controlsRef }) {
   return null
 }
 
-export default function HouseViewer({ floors }) {
+export default function HouseViewer({ floors, selectedFloorId = 1 }) {
   const controls = useRef(null)
   const cameraRef = useRef(null)
   const invalidateRef = useRef(null)
@@ -225,7 +264,7 @@ export default function HouseViewer({ floors }) {
         <directionalLight position={[20, 36, 14]} intensity={1.6} />
         <directionalLight position={[-18, 20, -14]} intensity={0.5} />
         <Suspense fallback={null}>
-          <House floors={floors} />
+          <House floors={floors} selectedFloorId={selectedFloorId} />
         </Suspense>
         <ContactShadows
           position={[0, 0.01, 0]}
