@@ -22,9 +22,6 @@ export const KARKASS_VARIANTS = [
 export const TREPIKODA_GROUND_URL = '/GLB/Trepikoda_1K.glb'
 export const TREPIKODA_UPPER_URL = '/GLB/Trepikoda_2K.glb'
 
-// Building-wide decisions. Reserved for future options (currently none).
-export const BUILDING_STEPS = []
-
 // Toggleable layers within a floor. Key = state field on Floor object.
 export const LAYERS = {
   jaikus:              { label: 'Jäikusseinad OSB',       url: '/GLB/Jaikusseinad_OSB.glb' },

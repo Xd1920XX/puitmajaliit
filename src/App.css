@@ -481,18 +481,12 @@
   min-height: 0;
 }
 
-.floor-panel h3,
-.building-panel h3 {
+.floor-panel h3 {
   margin: 0;
   padding: 12px 16px 6px;
   font-family: var(--font-display);
   font-size: 18px;
   color: var(--brand-green-dark);
-}
-
-.building-panel {
-  border-bottom: 1px solid var(--brand-line);
-  background: var(--brand-cream-light);
 }
 
 .step-opt {
