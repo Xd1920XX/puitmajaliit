@@ -65,7 +65,7 @@ export const LAYERS = {
 export const FLOOR_STEPS = [
   { id: 'porand',              label: 'Põrand',                kind: 'toggle',                                                                     hint: 'Põrandakonstruktsioon — esimene samm korruse ehitamisel.' },
   { id: 'karkass',             label: 'Karkass',               kind: 'variant', variants: KARKASS_VARIANTS, hideWhenAboveComplete: true,           hint: 'Vali kandev karkass — 300/400/600 mm või CLT.' },
-  { id: 'jaikus',              label: 'Jäikusseinad OSB',      kind: 'variant', variants: JAIKUS_VARIANTS,  skipWhenVariant: { karkass: ['CLT'] }, hint: 'OSB jäikusseinad — vali naelutussamm. CLT paneeli puhul ei kehti.' },
+  { id: 'jaikus',              label: 'Jäikusseinad OSB',      kind: 'variant', variants: JAIKUS_VARIANTS,  skipWhenVariant: { karkass: ['CLT'] }, hint: 'OSB jäikusseinad — vali naelutussamm.' },
   { id: 'soojustus',           label: 'Soojustusvill',         kind: 'toggle',                              skipWhenVariant: { karkass: ['CLT'] }, hint: 'Soojustusvill seintes.' },
   { id: 'soojustus_vannituba', label: 'Soojustus (vannituba)', kind: 'toggle',  optional: true,                                                    hint: 'Täiendav vannitoa soojustus. Lisa vajadusel.' },
   { id: 'kips',                label: 'Kips',                  kind: 'toggle',                                                                     hint: 'Sisemine 2-kihiline kipsplaat.' },

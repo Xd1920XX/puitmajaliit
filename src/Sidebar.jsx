@@ -256,7 +256,7 @@ export default function Sidebar({
             const enabled = baseEnabled && !katusBlocked && !notApplicable
             const done = isStepDone(floor, step)
             const hint = notApplicable
-              ? 'Ei kehti valitud karkassi puhul (CLT ei vaja soojustusvilla).'
+              ? 'Ei kehti valitud karkassi puhul.'
               : katusBlocked
                 ? `Katust saab lisada ainult ${MAX_FLOORS}. korrusele.`
                 : step.hint
