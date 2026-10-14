@@ -1289,17 +1289,28 @@
 
 /* ========== Responsive ========== */
 
-/* Tablet / small desktop (≤ 900px): sidebar drops below the viewer.
-   Chips wrap to two rows of five since 10 across is too cramped. */
+/* Tablet / small desktop (≤ 900px): switch to a flex column so the
+   sidebar can take the remaining height with proper internal scrolling.
+   Grid auto-sizing caused the sidebar to be squeezed to its content and
+   the step controls to overflow off-screen on phones. */
 @media (max-width: 900px) {
   .layout {
-    grid-template-columns: 1fr;
-    grid-template-rows: minmax(300px, 1fr) auto;
+    display: flex;
+    flex-direction: column;
+    grid-template-columns: unset;
+    grid-template-rows: unset;
+  }
+  .stage {
+    flex: 0 0 38vh;
+    flex-basis: 38dvh;
+    min-height: 200px;
   }
   .sidebar {
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: none;
     border-left: none;
     border-top: 1px solid var(--brand-line);
-    max-height: 55vh;
   }
   /* !important beats the inline grid-template set by Sidebar from
      MAX_FLOORS. */
@@ -1312,16 +1323,59 @@
   .material-grid {
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   }
+  /* When the user hides the sidebar, let the viewer fill the whole
+     column instead of leaving dead space below the fixed-basis stage. */
+  .layout.layout-full .stage {
+    flex: 1 1 auto;
+    flex-basis: auto;
+    min-height: 0;
+  }
 }
 
 /* Mobile (≤ 640px): tighter paddings, bigger touch targets, HUD/compass
    closer to edges, modal uses full width, intro collapses to one column. */
 @media (max-width: 640px) {
-  .layout {
-    grid-template-rows: minmax(240px, 1fr) auto;
+  .stage {
+    flex: 0 0 34vh;
+    flex-basis: 34dvh;
+    min-height: 180px;
   }
-  .sidebar {
-    max-height: 60vh;
+  /* Score section becomes a single inline row to save vertical pixels. */
+  .score {
+    padding: 4px 10px;
+    gap: 10px;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+  }
+  .score-row {
+    gap: 4px;
+    font-size: 11px;
+  }
+  .score-row strong {
+    font-size: 13px;
+  }
+  /* Chips use a fixed small height so the row doesn't eat vertical space. */
+  .floor-chip {
+    aspect-ratio: auto;
+    height: 24px;
+    font-size: 10px;
+  }
+  .floor-nav {
+    padding: 4px 8px;
+  }
+  .floor-panel-head {
+    padding: 6px 12px;
+  }
+  .floor-panel h3 {
+    font-size: 13px;
+  }
+  .sidebar-foot {
+    padding: 8px 10px;
+  }
+  .sidebar-foot .btn {
+    padding: 8px 12px;
+    font-size: 12px;
   }
 
   /* Viewer HUD + overlays */
@@ -1352,22 +1406,12 @@
     max-height: 22px;
     max-width: 90px;
   }
-  .viewer-controls {
-    min-width: 148px;
-    padding: 10px;
-    bottom: 8px;
-    right: 8px;
-    gap: 8px;
-  }
-  .viewer-controls button {
-    height: 30px;
-    font-size: 12px;
-  }
+  /* Touch handles orbit/zoom natively — the floating Vaade panel just
+     eats precious viewer area on phones. Hide it (and its re-open pill)
+     entirely at this breakpoint. */
+  .viewer-controls,
   .viewer-controls-toggle {
-    right: 8px;
-    bottom: 8px;
-    width: 40px;
-    height: 40px;
+    display: none;
   }
   .viewer-compass {
     width: 48px;
@@ -1513,14 +1557,19 @@
 
 /* Small mobile (≤ 420px): one more tightening pass. */
 @media (max-width: 420px) {
-  .layout {
-    grid-template-rows: minmax(220px, 1fr) auto;
+  .stage {
+    flex: 0 0 32vh;
+    flex-basis: 32dvh;
+    min-height: 160px;
   }
   .score-row {
-    font-size: 11px;
+    font-size: 10.5px;
   }
   .score-row strong {
-    font-size: 14px;
+    font-size: 12.5px;
+  }
+  .floor-chip {
+    height: 22px;
   }
   .floor-chips {
     gap: 2px;

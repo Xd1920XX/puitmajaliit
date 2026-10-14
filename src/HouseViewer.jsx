@@ -261,7 +261,7 @@ export default function HouseViewer({ floors, selectedFloorId = 1 }) {
     <div className="viewer">
       <Canvas
         frameloop="demand"
-        dpr={[1, 1.5]}
+        dpr={[1, 1.25]}
         gl={{
           antialias: true,
           alpha: true,
@@ -287,7 +287,7 @@ export default function HouseViewer({ floors, selectedFloorId = 1 }) {
           blur={2.6}
           far={30}
           opacity={0.35}
-          resolution={1024}
+          resolution={512}
           frames={1}
         />
         {gridOn && (
