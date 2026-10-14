@@ -197,6 +197,7 @@
   letter-spacing: 0.06em;
 }
 
+
 /* Control panel */
 .viewer-controls {
   position: absolute;
@@ -360,6 +361,71 @@
   border: 3px solid rgba(46, 99, 71, 0.2);
   border-top-color: var(--brand-green);
   animation: spin 0.9s linear infinite;
+}
+
+.viewer-error {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(255, 249, 232, 0.95);
+  text-align: center;
+}
+
+.viewer-error h3 {
+  margin: 0;
+  font-size: 18px;
+  color: var(--brand-green-dark);
+}
+
+.viewer-error p {
+  margin: 0;
+  font-size: 13px;
+  color: var(--brand-muted);
+  max-width: 400px;
+}
+
+/* Confetti */
+.confetti {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 1;
+}
+
+.confetti-piece {
+  position: absolute;
+  top: -20px;
+  border-radius: 1px;
+  animation-name: confetti-fall;
+  animation-timing-function: cubic-bezier(0.1, 0.6, 0.4, 1);
+  animation-fill-mode: forwards;
+  will-change: transform, opacity;
+}
+
+@keyframes confetti-fall {
+  0% {
+    transform: translate3d(0, 0, 0) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translate3d(var(--drift, 0), 420px, 0) rotate(var(--rot, 180deg));
+    opacity: 0;
+  }
+}
+
+/* Keyboard focus visibility — brand accent ring, consistent across
+   buttons/inputs. Mouse clicks keep the quieter default states. */
+button:focus-visible,
+[role="radio"]:focus-visible {
+  outline: 2px solid var(--brand-accent);
+  outline-offset: 2px;
 }
 
 @keyframes spin {
@@ -530,6 +596,40 @@
   z-index: 1;
 }
 
+.floor-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.floor-action {
+  flex: 1 1 auto;
+  padding: 5px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--brand-line);
+  background: var(--white);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--brand-green-dark);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.floor-action:hover {
+  background: var(--brand-cream-light);
+  border-color: var(--brand-green);
+}
+
+.floor-action-danger {
+  color: var(--brand-accent);
+}
+
+.floor-action-danger:hover {
+  border-color: var(--brand-accent);
+  background: #fff5e4;
+}
+
 .floor-panel h3 {
   margin: 0;
   font-family: var(--font-display);
@@ -645,6 +745,7 @@
 }
 
 .modal {
+  position: relative;
   width: min(440px, 100%);
   background: var(--white);
   border-radius: var(--radius);
@@ -1106,9 +1207,29 @@
 .step-head {
   padding: 10px 12px 4px;
   display: grid;
-  grid-template-columns: 32px 1fr auto;
+  grid-template-columns: 32px 1fr auto auto;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
+}
+
+.step-info {
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--brand-muted);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.step-info:hover {
+  background: var(--brand-cream-light);
+  border-color: var(--brand-line);
+  color: var(--brand-green-dark);
 }
 
 .step-num {

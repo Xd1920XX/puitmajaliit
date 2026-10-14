@@ -198,11 +198,10 @@ export default function HouseViewer({ floors, selectedFloorId = 1 }) {
   const [panelOpen, setPanelOpen] = useState(true)
   const initialCamPos = useMemo(() => [30, 22, 42], [])
   const builtCount = floors.filter(isFloorComplete).length
-  // Frame the camera on the actual built height, not the hypothetical
-  // 10-storey tower. Clamp to at least 1 floor so the empty baseline isn't
-  // framed at ground level.
-  const framedFloors = Math.max(1, builtCount)
-  const targetY = (framedFloors * FLOOR_HEIGHT) / 2.6
+  // Camera focus lives on the midpoint of the currently selected floor so
+  // switching floors visually scrolls the camera up/down the building.
+  const focusY = (selectedFloorId - 0.5) * FLOOR_HEIGHT
+  const targetY = focusY
 
   const withRig = (fn) => () => {
     const c = controls.current
@@ -258,6 +257,29 @@ export default function HouseViewer({ floors, selectedFloorId = 1 }) {
     new THREE.Vector3(...initialCamPos),
     new THREE.Vector3(0, targetY, 0),
   )
+
+  // When the user picks a different floor in the sidebar, slide the
+  // orbit target vertically to that floor's midpoint. Keep the current
+  // camera X/Z angle, just shift the camera and the target Y by the
+  // same delta so the framing stays stable.
+  const lastFocusRef = useRef(selectedFloorId)
+  useEffect(() => {
+    if (lastFocusRef.current === selectedFloorId) return
+    lastFocusRef.current = selectedFloorId
+    const c = controls.current
+    const cam = cameraRef.current
+    if (!c || !cam) return
+    const deltaY = focusY - c.target.y
+    tweenRef.current = {
+      fromPos: cam.position.clone(),
+      toPos: cam.position.clone().setY(cam.position.y + deltaY),
+      fromTarget: c.target.clone(),
+      toTarget: c.target.clone().setY(focusY),
+      start: performance.now(),
+      duration: 500,
+    }
+    invalidateRef.current?.()
+  }, [selectedFloorId, focusY])
 
   return (
     <div className="viewer">

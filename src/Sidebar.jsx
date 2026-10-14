@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import Modal from './Modal.jsx'
+import Confetti from './Confetti.jsx'
 import { FLOOR_STEPS, KARKASS_VARIANTS, LAYERS, MAX_FLOORS } from './config.js'
 import {
   canAddKatus,
@@ -106,6 +107,8 @@ export default function Sidebar({
   onVariant,
   onToggleLayer,
   onReset,
+  onCopyPreviousFloor,
+  onResetFloor,
   elapsedMs = 0,
   submitted = false,
 }) {
@@ -122,7 +125,18 @@ export default function Sidebar({
   const progressPct = Math.round((progress.done / progress.total) * 100)
 
   const [confirmReset, setConfirmReset] = useState(false)
+  const [confirmResetFloor, setConfirmResetFloor] = useState(false)
   const [showSubmit, setShowSubmit] = useState(false)
+  const [infoStepId, setInfoStepId] = useState(null)
+
+  const prevFloor = floors.find((f) => f.id === selectedFloorId - 1)
+  const canCopyPrev =
+    selectedFloorId > 1 &&
+    prevFloor &&
+    FLOOR_STEPS.some((s) => (s.kind === 'variant' ? prevFloor[s.id] !== null : prevFloor[s.id] === true))
+  const floorHasAnyStep = FLOOR_STEPS.some((s) =>
+    s.kind === 'variant' ? floor[s.id] !== null : floor[s.id] === true,
+  )
 
   const panelRef = useRef(null)
   useEffect(() => {
@@ -245,6 +259,28 @@ export default function Sidebar({
           <div className="floor-progress-bar">
             <div className="floor-progress-fill" style={{ width: `${progressPct}%` }} />
           </div>
+          <div className="floor-actions">
+            {canCopyPrev && (
+              <button
+                type="button"
+                className="floor-action"
+                onClick={() => onCopyPreviousFloor?.(selectedFloorId)}
+                title={`Kopeeri korruse ${selectedFloorId - 1} valikud`}
+              >
+                ⎘ Kopeeri korrus {selectedFloorId - 1}
+              </button>
+            )}
+            {floorHasAnyStep && (
+              <button
+                type="button"
+                className="floor-action floor-action-danger"
+                onClick={() => setConfirmResetFloor(true)}
+                title="Tühista selle korruse valikud"
+              >
+                ⟲ Tühista korrus
+              </button>
+            )}
+          </div>
         </div>
         <ol className="steps">
           {FLOOR_STEPS.map((step, index) => {
@@ -274,6 +310,15 @@ export default function Sidebar({
                     </strong>
                     <span className="step-hint">{hint}</span>
                   </div>
+                  <button
+                    type="button"
+                    className="step-info"
+                    aria-label={`Info: ${step.label}`}
+                    onClick={() => setInfoStepId(step.id)}
+                    title="Mida see tähendab?"
+                  >
+                    ⓘ
+                  </button>
                   <span className="step-state">
                     {notApplicable ? '—' : done ? '✓' : enabled ? '' : '🔒'}
                   </span>
@@ -370,6 +415,32 @@ export default function Sidebar({
       </Modal>
 
       <Modal
+        open={confirmResetFloor}
+        onClose={() => setConfirmResetFloor(false)}
+        title={`Tühista korrus ${selectedFloorId}?`}
+        tone="warning"
+        actions={
+          <>
+            <button type="button" className="btn btn-ghost" onClick={() => setConfirmResetFloor(false)}>
+              Tühista
+            </button>
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={() => {
+                setConfirmResetFloor(false)
+                onResetFloor?.(selectedFloorId)
+              }}
+            >
+              Jah, tühjenda korrus
+            </button>
+          </>
+        }
+      >
+        <p>Selle korruse valikud kustutatakse. Teised korrused jäävad.</p>
+      </Modal>
+
+      <Modal
         open={showSubmit}
         onClose={() => setShowSubmit(false)}
         title="Ehitis esitatud"
@@ -392,9 +463,76 @@ export default function Sidebar({
           </>
         }
       >
+        {showSubmit && <Confetti />}
         <p className="modal-lead">Sinu puitmaja on esitatud. Vaata kokkuvõtet:</p>
         <BuildingSummary floors={floors} roofId={roofId} elapsedMs={elapsedMs} />
       </Modal>
+
+      <StepInfoModal
+        stepId={infoStepId}
+        onClose={() => setInfoStepId(null)}
+      />
     </aside>
+  )
+}
+
+const STEP_INFO = {
+  porand: {
+    title: 'Põrand',
+    body: 'Põrandakonstruktsioon moodustab iga korruse aluse. Lisatakse alati esimesena enne karkassi püstitamist. Tagab staatilise jäikuse ja kannab elanike + mööbli raskust alusstruktuurile.',
+  },
+  karkass: {
+    title: 'Karkass',
+    body: 'Kandev struktuur. 300/400/600 mm puitkarkass on klassikaline lahendus — number tähistab vahetugede sammu seinas. CLT (ristkihtliimpuit) on massiivpaneel, millel pole eraldi jäikusseinu ega soojustusvilla seintes vaja.',
+  },
+  jaikus: {
+    title: 'Jäikusseinad OSB',
+    body: 'OSB plaadid naelutatakse karkassi peale, muutes seina jäigaks tuulekoormuste vastu. Naelutussamm (50/70/100 mm) määrab, kui tihedalt naelu lüüakse — mida tihedam, seda tugevam. CLT seinas pole jäikust vaja, kuna paneel ise on jäik.',
+  },
+  soojustus: {
+    title: 'Soojustusvill',
+    body: 'Üks nupp lisab korraga seina + vannitoa soojustuse (puitkarkassil). CLT paneeli puhul lisandub ainult vannitoa soojustus — ülejäänud seinad soojustavad massiivpuidu enda termiline kaitse.',
+  },
+  kips:  {
+    title: 'Kips (2-kihiline)',
+    body: 'Sisemine 2-kihiline kipsplaat katab seinad seestpoolt. Tagab tuleohutuse (2 kihti = parem tulekindlus) ja ühtlase pinna viimistluseks. Paigaldatakse peale soojustust, enne fassaadi.',
+  },
+  fassaad: {
+    title: 'Fassaad',
+    body: 'Välimine kate — kaitseb seinad ilmastiku eest ja annab ehitisele visuaalse ilme. Paigaldatakse peale kipsi.',
+  },
+  trepikoda: {
+    title: 'Trepikoda',
+    body: 'Trepikoja segment lisatakse igale korrusele. 1. korrusel paigaldub maapinna segment (1K), ülejäänud korrustel korduv segment (2K). Trepikoda on läbiv vertikaalne element.',
+  },
+  rodu: {
+    title: 'Rõdu',
+    body: 'Välisrõdu konstruktsioon. Valikuline — lisa ainult kui korrusel on rõdu kavandatud.',
+  },
+  lagi: {
+    title: 'Lagi',
+    body: 'Laekonstruktsioon sulgeb korruse. Vajalik enne järgmise korruse ehitamise alustamist. Kannab ülemise korruse põranda ja tagab tuleohutuse korruste vahel.',
+  },
+  katus: {
+    title: 'Katus',
+    body: 'Katusekate paigaldatakse ainult viimasele (10.) korrusele. Pärast katuse paigaldust ehitamine lõppeb — rohkem korruseid lisada ei saa. Katus on terminal, pöördumatu samm.',
+  },
+}
+
+function StepInfoModal({ stepId, onClose }) {
+  const info = stepId ? STEP_INFO[stepId] : null
+  return (
+    <Modal
+      open={!!info}
+      onClose={onClose}
+      title={info?.title ?? ''}
+      actions={
+        <button type="button" className="btn btn-primary" onClick={onClose}>
+          Selge
+        </button>
+      }
+    >
+      {info && <p>{info.body}</p>}
+    </Modal>
   )
 }
