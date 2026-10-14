@@ -6,6 +6,8 @@ import {
   Grid,
   useProgress,
   ContactShadows,
+  AdaptiveDpr,
+  AdaptiveEvents,
 } from '@react-three/drei'
 import * as THREE from 'three'
 import {
@@ -261,7 +263,7 @@ export default function HouseViewer({ floors, selectedFloorId = 1 }) {
     <div className="viewer">
       <Canvas
         frameloop="demand"
-        dpr={[1, 1.25]}
+        dpr={[1, 1.5]}
         gl={{
           antialias: true,
           alpha: true,
@@ -317,6 +319,11 @@ export default function HouseViewer({ floors, selectedFloorId = 1 }) {
         />
         <CameraGrabber cameraRef={cameraRef} invalidateRef={invalidateRef} onAzimuth={setAzimuth} />
         <CameraTween tweenRef={tweenRef} controlsRef={controls} />
+        {/* Dynamic quality: during orbit/pan DPR drops toward min[0]=1 so
+            motion stays smooth, then restores to max[1]=1.5 at rest for
+            crisp stills. Events throttle during interaction too. */}
+        <AdaptiveDpr pixelated={false} />
+        <AdaptiveEvents />
       </Canvas>
 
       <div className="viewer-hud" aria-hidden>
