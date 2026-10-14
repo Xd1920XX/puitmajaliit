@@ -537,6 +537,13 @@
   color: var(--brand-green-dark);
 }
 
+.floor-panel-head-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+}
+
 .floor-progress {
   display: grid;
   gap: 3px;
@@ -1043,18 +1050,8 @@
   justify-content: center;
 }
 
-@media (max-width: 640px) {
-  .intro-head {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 12px;
-    text-align: left;
-  }
-  .intro-body, .intro-head, .intro-foot {
-    padding-left: 20px;
-    padding-right: 20px;
-  }
-}
+/* Mobile + small tablet intro tweaks live in the main responsive block
+   below. */
 
 .step-opt {
   font-weight: 500;
@@ -1290,19 +1287,256 @@
   50%      { box-shadow: 0 0 0 6px rgba(46, 99, 71, 0.18); }
 }
 
+/* ========== Responsive ========== */
+
+/* Tablet / small desktop (≤ 900px): sidebar drops below the viewer.
+   Chips wrap to two rows of five since 10 across is too cramped. */
 @media (max-width: 900px) {
   .layout {
     grid-template-columns: 1fr;
-    grid-template-rows: minmax(320px, 1fr) auto;
+    grid-template-rows: minmax(300px, 1fr) auto;
   }
   .sidebar {
     border-left: none;
     border-top: 1px solid var(--brand-line);
+    max-height: 55vh;
   }
-  /* Chip row is cramped at 10 columns on narrow screens — wrap into
-     two rows of five. !important beats the inline-style template set
-     by Sidebar from MAX_FLOORS. */
+  /* !important beats the inline grid-template set by Sidebar from
+     MAX_FLOORS. */
   .floor-chips {
     grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+  }
+  .intro-card {
+    max-width: 100%;
+  }
+  .material-grid {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  }
+}
+
+/* Mobile (≤ 640px): tighter paddings, bigger touch targets, HUD/compass
+   closer to edges, modal uses full width, intro collapses to one column. */
+@media (max-width: 640px) {
+  .layout {
+    grid-template-rows: minmax(240px, 1fr) auto;
+  }
+  .sidebar {
+    max-height: 60vh;
+  }
+
+  /* Viewer HUD + overlays */
+  .viewer-hud {
+    top: 8px;
+    left: 8px;
+  }
+  .hud-badge {
+    padding: 6px 10px;
+    gap: 4px;
+  }
+  .hud-badge-num {
+    font-size: 18px;
+  }
+  .hud-badge-lbl {
+    font-size: 10px;
+  }
+  .sidebar-toggle {
+    top: 8px;
+    right: 8px;
+    width: 32px;
+    height: 32px;
+    font-size: 18px;
+  }
+  .viewer-watermark {
+    top: 48px;
+    right: 8px;
+    max-height: 22px;
+    max-width: 90px;
+  }
+  .viewer-controls {
+    min-width: 148px;
+    padding: 10px;
+    bottom: 8px;
+    right: 8px;
+    gap: 8px;
+  }
+  .viewer-controls button {
+    height: 30px;
+    font-size: 12px;
+  }
+  .viewer-controls-toggle {
+    right: 8px;
+    bottom: 8px;
+    width: 40px;
+    height: 40px;
+  }
+  .viewer-compass {
+    width: 48px;
+    height: 48px;
+    bottom: 8px;
+    left: 8px;
+  }
+
+  /* Sidebar */
+  .score {
+    padding: 6px 12px;
+  }
+  .floor-nav {
+    padding: 6px 8px;
+  }
+  .floor-chip {
+    font-size: 10px;
+  }
+  .floor-panel-head {
+    padding: 8px 12px;
+  }
+  .step-head {
+    padding: 8px 10px 2px;
+    grid-template-columns: 26px 1fr auto;
+    gap: 8px;
+  }
+  .step-num {
+    width: 26px;
+    height: 26px;
+    font-size: 12px;
+  }
+  .step-title strong {
+    font-size: 13px;
+  }
+  .step-hint {
+    font-size: 11px;
+  }
+  .step-body {
+    padding: 6px 10px 10px;
+  }
+  .variant,
+  .layer-toggle {
+    padding: 8px 10px;
+    font-size: 12.5px;
+  }
+  .steps {
+    padding: 6px 10px 10px;
+    gap: 8px;
+  }
+  .sidebar-foot {
+    padding: 10px;
+  }
+
+  /* Floor-complete card */
+  .floor-complete {
+    margin: 6px 10px 10px;
+    padding: 12px;
+  }
+  .floor-complete-head {
+    grid-template-columns: 32px 1fr;
+    gap: 10px;
+  }
+  .floor-complete-icon {
+    width: 32px;
+    height: 32px;
+    font-size: 18px;
+  }
+
+  /* Intro */
+  .intro-overlay {
+    padding: 12px;
+  }
+  .intro-card {
+    max-height: calc(100vh - 24px);
+  }
+  .intro-head {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 16px 18px 12px;
+    text-align: left;
+  }
+  .intro-head h1 {
+    font-size: 18px;
+  }
+  .intro-logo {
+    max-height: 42px;
+  }
+  .intro-body {
+    padding: 16px 18px;
+  }
+  .intro-lead {
+    font-size: 13px;
+  }
+  .intro-body h2 {
+    font-size: 12.5px;
+    margin-top: 16px;
+  }
+  .material-grid {
+    grid-template-columns: 1fr;
+  }
+  .intro-foot {
+    padding: 14px 18px 18px;
+  }
+  .btn-lg {
+    padding: 12px 20px;
+    font-size: 14px;
+    min-width: 100%;
+  }
+
+  /* Order strip wraps naturally — just downsize */
+  .order-item {
+    font-size: 11px;
+    padding: 3px 8px;
+  }
+
+  /* Modal */
+  .modal-overlay {
+    padding: 12px;
+  }
+  .modal {
+    width: 100%;
+  }
+  .modal-head {
+    padding: 14px 16px 10px;
+  }
+  .modal-body {
+    padding: 0 16px 12px;
+    font-size: 13px;
+  }
+  .modal-foot {
+    padding: 12px 16px 16px;
+    flex-direction: column-reverse;
+  }
+  .modal-foot .btn {
+    width: 100%;
+    min-width: 0;
+  }
+  .summary-row strong {
+    font-size: 16px;
+  }
+}
+
+/* Small mobile (≤ 420px): one more tightening pass. */
+@media (max-width: 420px) {
+  .layout {
+    grid-template-rows: minmax(220px, 1fr) auto;
+  }
+  .score-row {
+    font-size: 11px;
+  }
+  .score-row strong {
+    font-size: 14px;
+  }
+  .floor-chips {
+    gap: 2px;
+  }
+  .nav-arrow {
+    width: 26px;
+    height: 26px;
+    font-size: 16px;
+  }
+  .intro-body h2 {
+    font-size: 12px;
+  }
+  .material strong {
+    font-size: 12.5px;
+  }
+  .material p {
+    font-size: 11.5px;
   }
 }

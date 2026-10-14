@@ -233,14 +233,17 @@ export default function Sidebar({
 
       <div className="floor-panel" ref={panelRef}>
         <div className="floor-panel-head">
-          <h3>{selectedFloorId}. korrus</h3>
-          <div className="floor-progress" aria-label={`${progress.done} / ${progress.total} kohustuslikku sammu tehtud`}>
-            <div className="floor-progress-bar">
-              <div className="floor-progress-fill" style={{ width: `${progressPct}%` }} />
-            </div>
-            <span className="floor-progress-label">
+          <div className="floor-panel-head-row">
+            <h3>{selectedFloorId}. korrus</h3>
+            <span
+              className="floor-progress-label"
+              aria-label={`${progress.done} / ${progress.total} kohustuslikku sammu tehtud`}
+            >
               {progress.done} / {progress.total} kohustuslikku
             </span>
+          </div>
+          <div className="floor-progress-bar">
+            <div className="floor-progress-fill" style={{ width: `${progressPct}%` }} />
           </div>
         </div>
         <ol className="steps">
