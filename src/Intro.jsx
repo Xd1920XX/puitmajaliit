@@ -20,8 +20,8 @@ const REQUIRED_MATERIALS = [
   {
     icon: '≋',
     label: 'Soojustusvill',
-    what: 'Soojustab välisseinad.',
-    when: 'OSB jäikusseinte juures — ainult puitkarkassi puhul.',
+    what: 'Üks nupp — sisaldab seina + vannitoa villa. CLT puhul ainult vannituba.',
+    when: 'Peale jäikusseinte, enne kipsi.',
   },
   {
     icon: '▭',
@@ -51,12 +51,6 @@ const REQUIRED_MATERIALS = [
 
 const OPTIONAL_MATERIALS = [
   {
-    icon: '≋',
-    label: 'Soojustus (vannituba)',
-    what: 'Täiendav soojustus niisketes ruumides. CLT puhul ainus võimalik villaraim.',
-    when: 'Enne kipsi — kõik karkassitüübid toetavad.',
-  },
-  {
     icon: '◰',
     label: 'Rõdu',
     what: 'Välisrõdu konstruktsioon.',
@@ -75,7 +69,6 @@ const ORDER_SEQUENCE = [
   { label: 'Karkass' },
   { label: 'Jäikus' },
   { label: 'Soojustus' },
-  { label: 'Vannituba', optional: true },
   { label: 'Kips' },
   { label: 'Fassaad' },
   { label: 'Trepikoda' },

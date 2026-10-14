@@ -14,6 +14,7 @@ import {
   LAYERS,
   FLOOR_HEIGHT,
   MAX_FLOORS,
+  SOOJUSTUS_URLS,
   TREPIKODA_SEGMENTS,
 } from './config.js'
 import { isFloorComplete, stepApplies } from './floorState.js'
@@ -94,6 +95,14 @@ function Floor({ index, floor, floorAbove, collapsed }) {
           <Model key={step.id} url={entry.url} yOffset={entry.yOffset ?? 0} />
         ) : null
       })}
+      {/* Composite soojustus render — one toggle, GLBs chosen by karkass.
+          CLT: bathroom wool only. Puitkarkass (300/400/600): wall + bath wool. */}
+      {floor.soojustus && floor.karkass && floor.karkass !== 'CLT' && (
+        <Model url={SOOJUSTUS_URLS.wall} />
+      )}
+      {floor.soojustus && floor.karkass && (
+        <Model url={SOOJUSTUS_URLS.bath} />
+      )}
       {LAYER_TOGGLE_STEPS.map((step) => {
         if (!floor[step.id]) return null
         // Skip layers that don't apply to this floor's configuration
@@ -425,3 +434,4 @@ BASELINE_URLS.forEach((url) => useGLTF.preload(url))
 VARIANT_STEPS.forEach((s) => s.variants.forEach((v) => useGLTF.preload(v.url)))
 LAYER_TOGGLE_STEPS.forEach((s) => useGLTF.preload(LAYERS[s.id].url))
 Object.values(TREPIKODA_SEGMENTS).forEach((seg) => useGLTF.preload(seg.url))
+Object.values(SOOJUSTUS_URLS).forEach((url) => useGLTF.preload(url))

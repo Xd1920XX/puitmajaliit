@@ -41,15 +41,23 @@ export const TREPIKODA_SEGMENTS = {
 // Toggleable layers within a floor. Key = state field on Floor object.
 // `yOffset` optional (defaults to 0). Variant-kind steps (karkass, jaikus)
 // list their URLs in their variants array, not here.
+// `soojustus` is handled externally in HouseViewer because it renders a
+// different combination of GLBs based on karkass choice — see SOOJUSTUS_URLS.
 export const LAYERS = {
-  soojustus:           { label: 'Soojustusvill',          url: '/GLB/Soojustusvill.glb' },
-  soojustus_vannituba: { label: 'Soojustus (vannituba)',  url: '/GLB/Soojustusvill_Vannituba.glb' },
   kips:                { label: 'Kips (2-kihiline)',      url: '/GLB/Kips_2kihiline.glb' },
   porand:              { label: 'Põrand',                 url: '/GLB/Porand.glb' },
   lagi:                { label: 'Lagi',                   url: '/GLB/Lagi.glb' },
   rodu:                { label: 'Rõdu',                   url: '/GLB/Rodu.glb' },
   fassaad:             { label: 'Fassaad',                url: '/GLB/Fassaad.glb' },
   katus:               { label: 'Katus',                  url: '/GLB/Katused.glb' },
+}
+
+// Composite soojustus render — one toggle, picks the right wool mix:
+//   puitkarkass → wall wool + bathroom wool together
+//   CLT         → bathroom wool only
+export const SOOJUSTUS_URLS = {
+  wall: '/GLB/Soojustusvill.glb',
+  bath: '/GLB/Soojustusvill_Vannituba.glb',
 }
 
 // Sub-steps within a single floor. Linear gate — a required step blocks the
@@ -66,8 +74,7 @@ export const FLOOR_STEPS = [
   { id: 'porand',              label: 'Põrand',                kind: 'toggle',                                                                     hint: 'Põrandakonstruktsioon — esimene samm korruse ehitamisel.' },
   { id: 'karkass',             label: 'Karkass',               kind: 'variant', variants: KARKASS_VARIANTS, hideWhenAboveComplete: true,           hint: 'Vali kandev karkass — 300/400/600 mm või CLT.' },
   { id: 'jaikus',              label: 'Jäikusseinad OSB',      kind: 'variant', variants: JAIKUS_VARIANTS,  skipWhenVariant: { karkass: ['CLT'] }, hint: 'OSB jäikusseinad — vali naelutussamm.' },
-  { id: 'soojustus',           label: 'Soojustusvill',         kind: 'toggle',                              skipWhenVariant: { karkass: ['CLT'] }, hint: 'Soojustusvill seintes.' },
-  { id: 'soojustus_vannituba', label: 'Soojustus (vannituba)', kind: 'toggle',  optional: true,                                                    hint: 'Täiendav vannitoa soojustus. Lisa vajadusel.' },
+  { id: 'soojustus',           label: 'Soojustusvill',         kind: 'toggle',                                                                     hint: 'Soojustusvill — puitkarkassile seintesse + vannituppa, CLT puhul ainult vannituppa.' },
   { id: 'kips',                label: 'Kips',                  kind: 'toggle',                                                                     hint: 'Sisemine 2-kihiline kipsplaat.' },
   { id: 'fassaad',             label: 'Fassaad',               kind: 'toggle',                                                                     hint: 'Välimine fassaadikate.' },
   { id: 'trepikoda',           label: 'Trepikoda',             kind: 'toggle',                                                                     hint: 'Lisa trepikoja segment (1K maapinnal, 2K ülemistel korrustel).' },
