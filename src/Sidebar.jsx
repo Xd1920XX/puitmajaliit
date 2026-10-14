@@ -164,10 +164,6 @@ export default function Sidebar({
 
   return (
     <aside className="sidebar">
-      <header className="sidebar-head">
-        <img src="/logo.png" alt="Woodhouse Academy" className="brand-logo" />
-      </header>
-
       <section className="score">
         <div className="score-row">
           <span>Korruseid valmis</span>

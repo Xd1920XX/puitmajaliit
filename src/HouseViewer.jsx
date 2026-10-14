@@ -388,6 +388,13 @@ export default function HouseViewer({ floors, selectedFloorId = 1 }) {
       </div>
       )}
 
+      <img
+        src="/logo.png"
+        alt=""
+        className="viewer-watermark"
+        aria-hidden
+      />
+
       <div className="viewer-compass" title="Kompass" aria-hidden>
         <svg viewBox="-50 -50 100 100" style={{ transform: `rotate(${-azimuth}rad)` }}>
           <circle cx="0" cy="0" r="44" fill="rgba(255,255,255,0.85)" stroke="var(--brand-line)" strokeWidth="1.5" />
