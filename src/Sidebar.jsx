@@ -13,6 +13,7 @@ import {
   stepApplies,
 } from './floorState.js'
 import { formatTime } from './formatTime.js'
+import { MAX_TOTAL_SCORE, scoreAll } from './scoring.js'
 
 function VariantGrid({ step, selectedId, enabled, onPick }) {
   return (
@@ -70,9 +71,14 @@ function BuildingSummary({ floors, roofId, elapsedMs = 0 }) {
     })
     return counts
   }, [builtFloors])
+  const totalScore = useMemo(() => scoreAll(floors).total, [floors])
 
   return (
     <div className="summary">
+      <div className="summary-row">
+        <span>Punktid</span>
+        <strong>{totalScore} / {MAX_TOTAL_SCORE}</strong>
+      </div>
       <div className="summary-row">
         <span>Aeg</span>
         <strong>{formatTime(elapsedMs)}</strong>
@@ -114,6 +120,7 @@ export default function Sidebar({
 }) {
   const floor = floors.find((f) => f.id === selectedFloorId)
   const doneCount = floors.filter(isFloorComplete).length
+  const totalScore = useMemo(() => scoreAll(floors).total, [floors])
   const canGoPrev = selectedFloorId > 1
   const complete = isFloorComplete(floor)
   const roofId = roofFloorId(floors)
@@ -191,7 +198,7 @@ export default function Sidebar({
         </div>
         <div className="score-row">
           <span>Punktid</span>
-          <strong>—</strong>
+          <strong>{totalScore} / {MAX_TOTAL_SCORE}</strong>
         </div>
       </section>
 
