@@ -13,7 +13,7 @@ import {
   stepApplies,
 } from './floorState.js'
 import { formatTime } from './formatTime.js'
-import { MAX_TOTAL_SCORE, scoreAll } from './scoring.js'
+import { MAX_TOTAL_SCORE, evaluateGame } from './scoring.js'
 
 function VariantGrid({ step, selectedId, enabled, onPick }) {
   return (
@@ -71,14 +71,21 @@ function BuildingSummary({ floors, roofId, elapsedMs = 0 }) {
     })
     return counts
   }, [builtFloors])
-  const totalScore = useMemo(() => scoreAll(floors).total, [floors])
+  const { total: totalScore, message } = useMemo(() => evaluateGame(floors), [floors])
+  const isPerfect = message?.id === 'M05'
 
   return (
     <div className="summary">
-      <div className="summary-row">
+      <div className="summary-row summary-score">
         <span>Punktid</span>
         <strong>{totalScore} / {MAX_TOTAL_SCORE}</strong>
       </div>
+      {message && (
+        <div className={`summary-feedback ${isPerfect ? 'is-ok' : 'is-warn'}`} role="note">
+          <strong>{message.title}</strong>
+          <p>{message.body}</p>
+        </div>
+      )}
       <div className="summary-row">
         <span>Aeg</span>
         <strong>{formatTime(elapsedMs)}</strong>
@@ -120,7 +127,6 @@ export default function Sidebar({
 }) {
   const floor = floors.find((f) => f.id === selectedFloorId)
   const doneCount = floors.filter(isFloorComplete).length
-  const totalScore = useMemo(() => scoreAll(floors).total, [floors])
   const canGoPrev = selectedFloorId > 1
   const complete = isFloorComplete(floor)
   const roofId = roofFloorId(floors)
@@ -198,7 +204,7 @@ export default function Sidebar({
         </div>
         <div className="score-row">
           <span>Punktid</span>
-          <strong>{totalScore} / {MAX_TOTAL_SCORE}</strong>
+          <strong title="Punktid avaldatakse ehitise esitamisel">—</strong>
         </div>
       </section>
 

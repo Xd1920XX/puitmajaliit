@@ -851,6 +851,41 @@ button:focus-visible,
   color: var(--brand-green-dark);
 }
 
+.summary-score strong {
+  font-size: 22px;
+}
+
+.summary-feedback {
+  display: grid;
+  gap: 6px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border-left: 4px solid var(--brand-accent);
+  background: var(--white);
+  box-shadow: var(--shadow-sm);
+}
+
+.summary-feedback strong {
+  font-family: var(--font-display);
+  font-size: 15px;
+  color: var(--brand-green-dark);
+}
+
+.summary-feedback p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--brand-ink);
+}
+
+.summary-feedback.is-ok {
+  border-left-color: var(--brand-green-dark);
+}
+
+.summary-feedback.is-warn {
+  border-left-color: var(--brand-accent);
+}
+
 .summary-block {
   display: grid;
   gap: 6px;
