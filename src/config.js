@@ -15,9 +15,9 @@ export const BASELINE_URLS = [
 // Karkass variants. Each floor picks one. `yOffset` adjusts the model's
 // vertical placement relative to its floor group (defaults to 0).
 export const KARKASS_VARIANTS = [
-  { id: '300', label: 'Puitkarkass 300 mm', url: '/GLB/Karkass_300.glb' },
-  { id: '400', label: 'Puitkarkass 400 mm', url: '/GLB/Karkass_400.glb' },
   { id: '600', label: 'Puitkarkass 600 mm', url: '/GLB/Karkass_600.glb' },
+  { id: '400', label: 'Puitkarkass 400 mm', url: '/GLB/Karkass_400.glb' },
+  { id: '300', label: 'Puitkarkass 300 mm', url: '/GLB/Karkass_300.glb' },
   { id: 'CLT', label: 'CLT paneel',         url: '/GLB/Karkass_CLT.glb' },
 ]
 
@@ -71,14 +71,14 @@ export const SOOJUSTUS_URLS = {
 // another floor, so lower storeys don't carry heavy frame/insulation GLBs
 // behind the façade. Visible exterior layers (facade, balcony, roof) stay.
 export const FLOOR_STEPS = [
-  { id: 'porand',              label: 'Põrand',                kind: 'toggle',                                                                     hint: 'Põrandakonstruktsioon — esimene samm korruse ehitamisel.' },
-  { id: 'karkass',             label: 'Karkass',               kind: 'variant', variants: KARKASS_VARIANTS, hideWhenAboveComplete: true,           hint: 'Vali kandev karkass — 300/400/600 mm või CLT.' },
-  { id: 'jaikus',              label: 'Jäikusseinad OSB',      kind: 'variant', variants: JAIKUS_VARIANTS,  skipWhenVariant: { karkass: ['CLT'] }, hint: 'OSB jäikusseinad — vali naelutussamm.' },
-  { id: 'soojustus',           label: 'Soojustusvill',         kind: 'toggle',                                                                     hint: 'Soojustusvill — puitkarkassile seintesse + vannituppa, CLT puhul ainult vannituppa.' },
-  { id: 'kips',                label: 'Kips',                  kind: 'toggle',                                                                     hint: 'Sisemine 2-kihiline kipsplaat.' },
-  { id: 'fassaad',             label: 'Fassaad',               kind: 'toggle',                                                                     hint: 'Välimine fassaadikate.' },
-  { id: 'trepikoda',           label: 'Trepikoda',             kind: 'toggle',                                                                     hint: 'Lisa trepikoja segment (1K maapinnal, 2K ülemistel korrustel).' },
-  { id: 'rodu',                label: 'Rõdu',                  kind: 'toggle',  optional: true,                                                    hint: 'Rõdu konstruktsioon. Lisa soovi korral.' },
-  { id: 'lagi',                label: 'Lagi',                  kind: 'toggle',                                                                     hint: 'Laekonstruktsioon — sulgeb korruse.' },
-  { id: 'katus',               label: 'Katus',                 kind: 'toggle',  optional: true,                                                    hint: 'Katusekate — ainult 10. korrusele, lõpetab ehitise.' },
+  { id: 'porand',              label: 'Põrand',                kind: 'toggle',                                                                     hint: 'Põrandakonstruktsioon' },
+  { id: 'karkass',             label: 'Karkass',               kind: 'variant', variants: KARKASS_VARIANTS, hideWhenAboveComplete: true,           hint: 'Vali kandev karkass' },
+  { id: 'jaikus',              label: 'Jäikusseinad OSB',      kind: 'variant', variants: JAIKUS_VARIANTS,  skipWhenVariant: { karkass: ['CLT'] }, hint: 'OSB jäikusseinad' },
+  { id: 'soojustus',           label: 'Soojustusvill',         kind: 'toggle',                                                                     hint: 'Soojustusvill karkassile' },
+  { id: 'kips',                label: 'Kips',                  kind: 'toggle',                                                                     hint: '2-kihiline kipsplaat' },
+  { id: 'fassaad',             label: 'Fassaad',               kind: 'toggle',                                                                     hint: 'Välifassaad' },
+  { id: 'trepikoda',           label: 'Trepikoda',             kind: 'toggle',                                                                     hint: 'Lisa trepikoda' },
+  { id: 'rodu',                label: 'Rõdu',                  kind: 'toggle',  optional: true,                                                    hint: 'Lisa rõdu' },
+  { id: 'lagi',                label: 'Lagi',                  kind: 'toggle',                                                                     hint: 'Laekonstruktsioon' },
+  { id: 'katus',               label: 'Katus',                 kind: 'toggle',  optional: true,                                                    hint: 'Katust saab lisada viimase korrusega' },
 ]
