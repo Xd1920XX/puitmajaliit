@@ -19,7 +19,7 @@ Port 5174 määratud `vite.config.js`-is (mitte Vite default 5173). Lint / test 
 
 ## Arhitektuur
 
-**Stack:** React 19 + Vite 8 + React Three Fiber + Drei. Ei mingit Firebase'i, autentimist ega routingut — standalone üheleherakendus.
+**Stack:** React 19 + Vite 8 + React Three Fiber + Drei frontendi poolel. **Firebase (Firestore + Cloud Functions v2)** backendi poolel — ainult Academy integreerimiseks (tulemuste salvestus + Academy API). Pole routingut — SPA on ikka üheleherakendus.
 
 **Domeen:** puitmaja ehituse õpetuslik simulaator. Kasutaja ehitab **kuni 10 korrust** alt üles. Iga korrus koosneb mitmest kihist, mis lisatakse kindlas järjekorras. Iga korruse jaoks võib valida erineva karkassi variandi.
 
@@ -126,15 +126,145 @@ Fondid tulevad Google Fonts CDN-ist (`index.html`). Aino ja Etelka (Woodhouse Ac
 
 ## Skoor
 
-**Praegu:** puudub — Sidebar näitab `—`. Excel-loader tuleb hiljem.
+Punktid tulevad `src/scoring.js`-ist. Karkass + OSB tabelid per korrus (vt failis). Max 150 (10 × 15). `evaluateGame(floors)` tagastab `{ total, perFloor, message }` — kus `message` on üks lõppteavitus prioriteedi järgi. Sidebar + submit modal kasutavad seda otse. Punktide tabeli muutmiseks muuda ainult `scoring.js`-i.
 
-**Tulevikus:** Exceli fail mappib iga korruse kihivalikute kombinatsiooni (karkassi variant × kihi olemasolu) punktideks. Vaja on:
+## Academy integratsioon
 
-1. Parser (`src/scoring/xlsxLoader.js`, kasuta `xlsx` NPM paketti või CSV-d).
-2. Struktuur — arvatavasti lookup `{ [karkassId]: { [layerId]: n } }`, mida rakendatakse iga korruse peal ja summeeritakse.
-3. Uus `useMemo` `App.jsx`-is mis arvutab kogutulemi `floors`-ist.
+MVP skoop:
+- Game = see repo (mäng + Firebase backend).
+- Academy = eraldi süsteem, mis kasutab game API-t.
+- Launch flow: Academy signib HS256 JWT ja suunab kasutaja `?launch_token=<jwt>`-ga mängu.
+- Game kuvab kasutaja (email + name) üleval `AcademyBar`-is; võimaldab tagasilinki.
+- Mängu lõpus (ehitis esitatud) → POST tulemus `/api/game/results` kaudu Firebase Functions-i, mis verifitseerib JWT ja kirjutab Firestore'i `results/` kollektsiooni.
+- Academy backend päri API-t Bearer API-key-ga: `GET /api/academy/tasks`, `/academy/tasks/{id}/leaderboard`, `/academy/users/{email}/results`.
 
-Ära tee kihilist state managerit (Redux, Zustand) — üks `useState` `App.jsx`-is piisab.
+### Failistruktuur (Academy)
+
+```
+src/academy/
+  config.js         # VITE_API_BASE, TASK_ID, DEFAULT_RETURN_URL
+  launchToken.js    # URL-param parse + sessionStorage; decode-only (verify on server)
+  api.js            # submitResult() → POST /api/game/results
+  AcademyBar.jsx    # top-bar nimi + email + "Tagasi Academy'sse" nupp
+  academy.css      # bar + submit status
+functions/
+  index.js          # Express app Firebase Functions v2-s
+  package.json
+firebase.json       # hosting rewrites /api/** → api fn (region europe-west1)
+firestore.rules     # kõik client access deny — kõik läbi Functions
+firestore.indexes.json
+scripts/
+  seed-task.js      # tasks/vm-001 initial seed
+  mint-launch-token.js  # testimine: mint JWT dev secrete'iga
+```
+
+### JWT formaat (Academy ↔ Game)
+
+- Allkiri: HS256 shared secret `ACADEMY_JWT_SECRET`.
+- `iss`: `woodhouse-academy`
+- `aud`: `virtuaalne-mudeldaja`
+- Payload: `{ email, name, return_url, iat, exp }`
+- Soovitatud kehtivusaeg: 5–15 min (SPA hoiab tokeni ainult sessionStorage'is, mitte localStorage).
+
+### Secrets
+
+Produktsioonis:
+```
+firebase functions:secrets:set ACADEMY_JWT_SECRET
+firebase functions:secrets:set ACADEMY_API_KEY
+```
+Kohalik emulaator: `functions/.env.local` (vt `functions/.env.example`).
+
+### Frontend env
+
+`.env.local` (Vite):
+```
+VITE_API_BASE=/api                       # või täielik Functions URL
+VITE_TASK_ID=vm-001
+VITE_ACADEMY_RETURN_URL=https://...
+```
+
+Kui `VITE_API_BASE` on tühi → mäng töötab anonüümselt (ei submit midagi, confirm-modal näitab "Anonüümne mäng").
+
+### Praegune deploy olek
+
+- **Firebase projekt:** `puitmajaliit-game`
+- **Firestore:** europe-west1 region, `(default)` database
+- **Cloud Functions URL:** `https://europe-west1-puitmajaliit-game.cloudfunctions.net/api`
+- **Secretid Secret Manager'is:** `ACADEMY_JWT_SECRET`, `ACADEMY_API_KEY`
+- **SPA host:** Netlify (vt `netlify.toml`); `/api/**` proxy'tud Cloud Functionsile.
+
+### Käsud (Firebase backend)
+
+```bash
+cd functions && yarn install           # või npm install
+firebase login                          # ühekordne
+
+# Emulaator (dev)
+cd functions && yarn serve
+
+# Deploy järjekorras
+firebase deploy --only firestore:rules,firestore:indexes
+firebase deploy --only functions
+# Hosting EI deploy'ta — kasutame Netlifyt frontendile.
+
+# Seed/update task (admin endpoint, API_KEY-ga)
+API_KEY=$(firebase functions:secrets:access ACADEMY_API_KEY)
+curl -X POST https://europe-west1-puitmajaliit-game.cloudfunctions.net/api/admin/tasks \
+  -H "Authorization: Bearer $API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"id":"vm-001","title":"Virtuaalne mudeldaja","description":"…","is_active":true,"sort_order":1}'
+
+# Mint test launch token kohalikult (dev)
+cd functions && ACADEMY_JWT_SECRET=dev-secret \
+  GAME_URL=http://localhost:5174 \
+  node scripts/mint-launch-token.js student@example.com "Mari Mets"
+
+# Mint test token päris JWT secretiga
+cd functions && ACADEMY_JWT_SECRET=$(firebase functions:secrets:access ACADEMY_JWT_SECRET) \
+  GAME_URL=https://<netlify-site>.netlify.app \
+  node scripts/mint-launch-token.js student@example.com "Mari Mets"
+```
+
+### Netlify deploy
+
+**Esimene seadistus:**
+1. Push repo GitHubi.
+2. Netlify UI → "Add new site" → "Import existing project" → vali repo.
+3. Build command + publish dir tulevad `netlify.toml`-ist automaatselt.
+4. Deploy. URL'iks saad `<site>.netlify.app` (saad custom domaini seada).
+
+Env'id (`.env.production`) commititakse koos repoga — Netlify loeb automaatselt. Override Netlify UI → Site settings → Environment variables kui vaja.
+
+**Redirect flow:**
+- Brauser → `GET https://<site>.netlify.app/api/game/results`
+- Netlify edge → proxy → `https://europe-west1-puitmajaliit-game.cloudfunctions.net/api/game/results`
+- Vastus tagasi same-origin ilma CORS'ita.
+
+**Headerid:** `netlify.toml` seadistab turva-headerid (X-Frame-Options jne) + agresiivse cache GLB-dele + /assets'ile.
+
+### Firestore skeem
+
+```
+tasks/{taskId}        { title, description, image_url, is_active, sort_order }
+results/{autoId}      { email, name, task_id, score, duration_seconds,
+                        floors_count, finished_at (ISO), created_at (ts) }
+```
+
+Kõik client access on `firestore.rules`-is keelatud — Admin SDK Functions'i sees möödub rules'ist.
+
+### Vastutuse jaotus
+
+- Game SPA (Netlify): ainult POST /api/game/results (user Bearer = launch JWT).
+- Game Functions (Firebase): JWT verify, Firestore write + Academy read endpoints + admin task CRUD.
+- Academy SPA/backend: mäng-vaate renderdus, launch JWT allkirjastamine, Academy API päringud oma Bearer API-key-ga.
+
+### Admin endpointid
+
+Mõlemad kasutavad `ACADEMY_API_KEY`-d (sama mis Academy read'id). Piirang: võtme leke = atacker saab tasks muuta. Produktsioonis tasuks eraldi `ADMIN_API_KEY` lisada.
+
+- `POST /api/admin/tasks` — loo/uuenda task (merge). Body `{id, title, description?, image_url?, is_active?, sort_order?}`.
+- `DELETE /api/admin/tasks/:id` — kustuta task.
 
 ## Failistruktuur
 

@@ -124,6 +124,9 @@ export default function Sidebar({
   onResetFloor,
   elapsedMs = 0,
   submitted = false,
+  academyUser = null,
+  onSubmitToAcademy = null,
+  onReturnToAcademy = null,
 }) {
   const floor = floors.find((f) => f.id === selectedFloorId)
   const doneCount = floors.filter(isFloorComplete).length
@@ -141,6 +144,12 @@ export default function Sidebar({
   const [confirmResetFloor, setConfirmResetFloor] = useState(false)
   const [showSubmit, setShowSubmit] = useState(false)
   const [infoStepId, setInfoStepId] = useState(null)
+  // Academy upload state. Fires once per submit modal open.
+  const [submitState, setSubmitState] = useState('idle') // idle | pending | ok | error | skipped
+  const [submitError, setSubmitError] = useState(null)
+  const submitFiredRef = useRef(false)
+
+  const totalScore = useMemo(() => evaluateGame(floors).total, [floors])
 
   const prevFloor = floors.find((f) => f.id === selectedFloorId - 1)
   const canCopyPrev =
@@ -187,6 +196,32 @@ export default function Sidebar({
 
   const handleSubmit = () => {
     setShowSubmit(true)
+    if (submitFiredRef.current) return
+    submitFiredRef.current = true
+    if (!academyUser || !onSubmitToAcademy) {
+      setSubmitState('skipped')
+      return
+    }
+    setSubmitState('pending')
+    setSubmitError(null)
+    onSubmitToAcademy({
+      score: totalScore,
+      duration_seconds: Math.round(elapsedMs / 1000),
+      finished_at: new Date().toISOString(),
+      floors_count: roofId ?? floors.length,
+    })
+      .then(() => setSubmitState('ok'))
+      .catch((err) => {
+        setSubmitState('error')
+        setSubmitError(err?.message || 'Teadmata viga')
+      })
+  }
+
+  const resetSubmit = () => {
+    setShowSubmit(false)
+    submitFiredRef.current = false
+    setSubmitState('idle')
+    setSubmitError(null)
   }
 
   return (
@@ -455,19 +490,28 @@ export default function Sidebar({
 
       <Modal
         open={showSubmit}
-        onClose={() => setShowSubmit(false)}
+        onClose={resetSubmit}
         title="Ehitis esitatud"
         tone="success"
         actions={
           <>
-            <button type="button" className="btn btn-ghost" onClick={() => setShowSubmit(false)}>
+            {academyUser && onReturnToAcademy && (
+              <button
+                type="button"
+                className="btn btn-ghost"
+                onClick={onReturnToAcademy}
+              >
+                ← Tagasi Academy'sse
+              </button>
+            )}
+            <button type="button" className="btn btn-ghost" onClick={resetSubmit}>
               Sulge
             </button>
             <button
               type="button"
               className="btn btn-primary"
               onClick={() => {
-                setShowSubmit(false)
+                resetSubmit()
                 onReset()
               }}
             >
@@ -476,8 +520,13 @@ export default function Sidebar({
           </>
         }
       >
-        {showSubmit && <Confetti />}
+        {showSubmit && submitState === 'ok' && <Confetti />}
         <p className="modal-lead">Sinu puitmaja on esitatud. Vaata kokkuvõtet:</p>
+        <AcademySubmitStatus
+          state={submitState}
+          error={submitError}
+          user={academyUser}
+        />
         <BuildingSummary floors={floors} roofId={roofId} elapsedMs={elapsedMs} />
       </Modal>
 
@@ -530,6 +579,45 @@ const STEP_INFO = {
     title: 'Katus',
     body: 'Katusekate paigaldatakse ainult viimasele (10.) korrusele. Pärast katuse paigaldust ehitamine lõppeb — rohkem korruseid lisada ei saa. Katus on terminal, pöördumatu samm.',
   },
+}
+
+function AcademySubmitStatus({ state, error, user }) {
+  if (state === 'idle') return null
+  if (state === 'skipped') {
+    return (
+      <div className="academy-submit-status is-pending" role="status">
+        <span className="dot" />
+        <span>Anonüümne mäng — tulemust ei salvestata Academy'sse.</span>
+      </div>
+    )
+  }
+  if (state === 'pending') {
+    return (
+      <div className="academy-submit-status is-pending" role="status">
+        <span className="dot" />
+        <span>Salvestan tulemust Academy'sse…</span>
+      </div>
+    )
+  }
+  if (state === 'ok') {
+    return (
+      <div className="academy-submit-status is-ok" role="status">
+        <span className="dot" />
+        <span>
+          Tulemus salvestatud{user?.name ? ` kasutajale ${user.name}` : ''}.
+        </span>
+      </div>
+    )
+  }
+  return (
+    <div className="academy-submit-status is-error" role="alert">
+      <span className="dot" />
+      <span>
+        Tulemuse salvestamine ebaõnnestus
+        {error ? `: ${error}` : '.'}
+      </span>
+    </div>
+  )
 }
 
 function StepInfoModal({ stepId, onClose }) {

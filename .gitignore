@@ -25,7 +25,17 @@ pnpm-debug.log*
 *.sln
 *.sw?
 
-# env
+# env — commit only example + production (avalikud VITE_* väärtused)
 .env
-.env.*
+.env.local
+.env.*.local
 !.env.example
+!.env.production
+
+# Netlify
+.netlify/
+
+# Firebase CLI debug logs
+firebase-debug.log
+firebase-debug.*.log
+.firebase/

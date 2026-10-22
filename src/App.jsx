@@ -1,7 +1,11 @@
-import { lazy, Suspense, useEffect, useRef, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import Sidebar from './Sidebar.jsx'
 import Intro from './Intro.jsx'
 import ErrorBoundary from './ErrorBoundary.jsx'
+import AcademyBar from './academy/AcademyBar.jsx'
+import { readLaunchToken, clearLaunchToken } from './academy/launchToken.js'
+import { submitResult } from './academy/api.js'
+import { DEFAULT_RETURN_URL } from './academy/config.js'
 import { FLOOR_STEPS, MAX_FLOORS } from './config.js'
 import { canSelectFloor, isFloorComplete, roofFloorId } from './floorState.js'
 
@@ -41,6 +45,10 @@ export default function App() {
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [introSeen, setIntroSeen] = useState(false)
   const [restorePrompt, setRestorePrompt] = useState(null) // saved blob
+  // Academy launch context: email + name + return_url, derived from the
+  // signed JWT Academy passed via ?launch_token=…. Null = anonymous play
+  // (game still works; nothing is submitted anywhere).
+  const [academyUser] = useState(() => readLaunchToken())
 
   // Build timer. Starts ticking once the user hits "Alusta"; freezes when
   // the roof is placed (ehitis esitatud); pauses while tab is hidden.
@@ -179,6 +187,21 @@ export default function App() {
     try { localStorage.removeItem(STORAGE_KEY) } catch {}
   }
 
+  const submitToAcademy = useCallback(
+    async (payload) => {
+      if (!academyUser?.token) throw new Error('Puudub Academy launch token')
+      return submitResult(academyUser.token, payload)
+    },
+    [academyUser],
+  )
+
+  const returnToAcademy = useCallback(() => {
+    const url = academyUser?.return_url || DEFAULT_RETURN_URL
+    if (!url) return
+    clearLaunchToken()
+    window.location.href = url
+  }, [academyUser])
+
   useEffect(() => {
     if (!introSeen) return
     const onKey = (e) => {
@@ -213,6 +236,7 @@ export default function App() {
 
   return (
     <div className="app">
+      <AcademyBar user={academyUser} onReturn={returnToAcademy} />
       <main className={`layout ${sidebarOpen && introSeen ? '' : 'layout-full'}`}>
         <section className="stage">
           <ErrorBoundary>
@@ -248,6 +272,9 @@ export default function App() {
             onResetFloor={resetFloor}
             elapsedMs={elapsedMs}
             submitted={submitted}
+            academyUser={academyUser}
+            onSubmitToAcademy={submitToAcademy}
+            onReturnToAcademy={returnToAcademy}
           />
         )}
       </main>
