@@ -9,7 +9,8 @@
   publish = "dist"
 
 [build.environment]
-  NODE_VERSION = "20"
+  # Node 22 — camera-controls@3.1.2 (drei transitive dep) nõuab >=22.
+  NODE_VERSION = "22"
   # Vite env'id (VITE_*) kompileeritakse build'i sisse — vt .env.production.
   # Override võimalik Netlify UI-s: Site settings → Environment variables.
 
