@@ -44,7 +44,7 @@ export const TREPIKODA_SEGMENTS = {
 // `soojustus` is handled externally in HouseViewer because it renders a
 // different combination of GLBs based on karkass choice — see SOOJUSTUS_URLS.
 export const LAYERS = {
-  kips:                { label: 'Kips (2-kihiline)',      url: '/GLB/Kips_2kihiline.glb' },
+  kips:                { label: 'Kipsplaadid',            url: '/GLB/Kips_2kihiline.glb' },
   porand:              { label: 'Põrand',                 url: '/GLB/Porand.glb' },
   lagi:                { label: 'Lagi',                   url: '/GLB/Lagi.glb' },
   rodu:                { label: 'Rõdu',                   url: '/GLB/Rodu.glb' },
@@ -72,10 +72,10 @@ export const SOOJUSTUS_URLS = {
 // behind the façade. Visible exterior layers (facade, balcony, roof) stay.
 export const FLOOR_STEPS = [
   { id: 'porand',              label: 'Põrand',                kind: 'toggle',                                                                     hint: 'Põrandakonstruktsioon' },
-  { id: 'karkass',             label: 'Karkass',               kind: 'variant', variants: KARKASS_VARIANTS, hideWhenAboveComplete: true,           hint: 'Vali kandev karkass' },
+  { id: 'karkass',             label: 'Konstruktsioon',        kind: 'variant', variants: KARKASS_VARIANTS, hideWhenAboveComplete: true,           hint: 'Vali kandev konstruktsioon' },
   { id: 'jaikus',              label: 'Jäikusseinad OSB',      kind: 'variant', variants: JAIKUS_VARIANTS,  skipWhenVariant: { karkass: ['CLT'] }, hint: 'OSB jäikusseinad' },
-  { id: 'soojustus',           label: 'Soojustusvill',         kind: 'toggle',                                                                     hint: 'Soojustusvill karkassile' },
-  { id: 'kips',                label: 'Kips',                  kind: 'toggle',                                                                     hint: '2-kihiline kipsplaat' },
+  { id: 'soojustus',           label: 'Isolatsioon',           kind: 'toggle',                                                                     hint: 'Soojus- ja akustiline isolatsioon' },
+  { id: 'kips',                label: 'Kipsplaadid',           kind: 'toggle',                                                                     hint: 'Kipsplaadid 1, 2 või 3 kihis' },
   { id: 'fassaad',             label: 'Fassaad',               kind: 'toggle',                                                                     hint: 'Välifassaad' },
   { id: 'trepikoda',           label: 'Trepikoda',             kind: 'toggle',                                                                     hint: 'Lisa trepikoda' },
   { id: 'rodu',                label: 'Rõdu',                  kind: 'toggle',  optional: true,                                                    hint: 'Lisa rõdu' },

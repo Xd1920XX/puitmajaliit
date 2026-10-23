@@ -219,7 +219,7 @@ export default function HouseViewer({ floors, selectedFloorId = 1 }) {
   const dolly = (factor) => withRig((c, cam) => {
     const offset = cam.position.clone().sub(c.target).multiplyScalar(factor)
     const next = offset.length()
-    if (next < 8 || next > 120) return
+    if (next < 3 || next > 120) return
     cam.position.copy(c.target).add(offset)
   })
   const orbit = (deltaAz) => withRig((c, cam) => {
@@ -247,11 +247,19 @@ export default function HouseViewer({ floors, selectedFloorId = 1 }) {
   const view = (preset) => () => {
     const d = 45
     let toPos
+    let toTarget = new THREE.Vector3(0, targetY, 0)
     if (preset === 'ees') toPos = new THREE.Vector3(0, targetY, d)
     else if (preset === 'kylg') toPos = new THREE.Vector3(d, targetY, 0)
     else if (preset === 'ylalt') toPos = new THREE.Vector3(0, d + targetY, 0.01)
+    else if (preset === 'parkla') {
+      // Dive below ground to the parking floor. Target sits inside the parking
+      // volume; camera is slightly above + offset so the entry portal / ramp
+      // is in frame rather than clipping through the slab.
+      toTarget = new THREE.Vector3(0, -1.8, 0)
+      toPos = new THREE.Vector3(14, -0.5, 14)
+    }
     else toPos = new THREE.Vector3(30, 22, 42)
-    tweenTo(toPos, new THREE.Vector3(0, targetY, 0))
+    tweenTo(toPos, toTarget)
   }
   const reset = () => tweenTo(
     new THREE.Vector3(...initialCamPos),
@@ -335,9 +343,12 @@ export default function HouseViewer({ floors, selectedFloorId = 1 }) {
           enablePan
           screenSpacePanning
           target={[0, targetY, 0]}
-          minDistance={8}
+          minDistance={3}
           maxDistance={120}
           maxPolarAngle={Math.PI / 2.05}
+          rotateSpeed={0.55}
+          zoomSpeed={0.7}
+          panSpeed={0.7}
         />
         <CameraGrabber cameraRef={cameraRef} invalidateRef={invalidateRef} onAzimuth={setAzimuth} />
         <CameraTween tweenRef={tweenRef} controlsRef={controls} />
@@ -408,6 +419,7 @@ export default function HouseViewer({ floors, selectedFloorId = 1 }) {
             <button type="button" onClick={view('kylg')}>Külg</button>
             <button type="button" onClick={view('ylalt')}>Ülalt</button>
             <button type="button" onClick={view('iso')}>Iso</button>
+            <button type="button" onClick={view('parkla')} title="Vaata parklat">Parkla</button>
           </div>
         </div>
 

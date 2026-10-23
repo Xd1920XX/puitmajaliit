@@ -99,7 +99,7 @@ function BuildingSummary({ floors, roofId, elapsedMs = 0 }) {
         <strong>{roofId ?? '—'}</strong>
       </div>
       <div className="summary-block">
-        <span>Karkassid</span>
+        <span>Konstruktsioonid</span>
         <ul>
           {Object.entries(karkassBreakdown).map(([id, n]) => (
             <li key={id}>
@@ -544,20 +544,20 @@ const STEP_INFO = {
     body: 'Põrandakonstruktsioon moodustab iga korruse aluse. Lisatakse alati esimesena enne karkassi püstitamist. Tagab staatilise jäikuse ja kannab elanike + mööbli raskust alusstruktuurile.',
   },
   karkass: {
-    title: 'Karkass',
-    body: 'Kandev struktuur. 300/400/600 mm puitkarkass on klassikaline lahendus — number tähistab vahetugede sammu seinas. CLT (ristkihtliimpuit) on massiivpaneel, millel pole eraldi jäikusseinu ega soojustusvilla seintes vaja.',
+    title: 'Konstruktsioon',
+    body: 'Kandev konstruktsioon. 300/400/600 mm puitkarkass on klassikaline lahendus — number tähistab vahetugede sammu seinas. CLT (ristkihtliimpuit) on massiivpaneel, millel pole eraldi jäikusseinu ega seinaisolatsiooni vaja.',
   },
   jaikus: {
     title: 'Jäikusseinad OSB',
     body: 'OSB plaadid naelutatakse karkassi peale, muutes seina jäigaks tuulekoormuste vastu. Naelutussamm (50/70/100 mm) määrab, kui tihedalt naelu lüüakse — mida tihedam, seda tugevam. CLT seinas pole jäikust vaja, kuna paneel ise on jäik.',
   },
   soojustus: {
-    title: 'Soojustusvill',
-    body: 'Üks nupp lisab korraga seina + vannitoa soojustuse (puitkarkassil). CLT paneeli puhul lisandub ainult vannitoa soojustus — ülejäänud seinad soojustavad massiivpuidu enda termiline kaitse.',
+    title: 'Isolatsioon',
+    body: 'Üks nupp lisab korraga seina + vannitoa mineraalvilla (puitkarkassil). CLT puhul lisandub ainult vannitoa isolatsioon. Siseseintes olev mineraalvill täidab eelkõige akustilise isolatsiooni, mitte soojustuse eesmärki.',
   },
   kips:  {
-    title: 'Kips (2-kihiline)',
-    body: 'Sisemine 2-kihiline kipsplaat katab seinad seestpoolt. Tagab tuleohutuse (2 kihti = parem tulekindlus) ja ühtlase pinna viimistluseks. Paigaldatakse peale soojustust, enne fassaadi.',
+    title: 'Kipsplaadid',
+    body: 'Isolatsioonile järgnevad kipsplaadid, mis võivad olla kas 1-s, 2-s või 3-s kihis. Mida rohkem kihte, seda parem tulekindlus. Paigaldatakse peale isolatsiooni, enne fassaadi.',
   },
   fassaad: {
     title: 'Fassaad',
