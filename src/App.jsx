@@ -1,6 +1,7 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import Sidebar from './Sidebar.jsx'
 import Intro from './Intro.jsx'
+import ApiDocs from './ApiDocs.jsx'
 import ErrorBoundary from './ErrorBoundary.jsx'
 import AcademyBar from './academy/AcademyBar.jsx'
 import { readLaunchToken, clearLaunchToken } from './academy/launchToken.js'
@@ -40,6 +41,9 @@ function loadSaved() {
 }
 
 export default function App() {
+  if (typeof window !== 'undefined' && window.location.pathname === '/api-docs') {
+    return <ApiDocs />
+  }
   const [floors, setFloors] = useState(initialFloors)
   const [selectedFloorId, setSelectedFloorId] = useState(1)
   const [sidebarOpen, setSidebarOpen] = useState(true)
