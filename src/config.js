@@ -4,8 +4,8 @@
 export const GAMES = [
   {
     id: 'vm-001',
-    title: 'Mäng 1 · Ajaga',
-    short: 'Etteantud aja jooksul',
+    title: 'Mäng 1',
+    short: 'Mäng 1 · ajaga',
     description:
       'Ehita etteantud aja jooksul tugevate tormituulte eest kaitstud piirkonda optimaalse konstruktsioonilahendusega 10-korruseline hoone.',
     scoring:
@@ -14,8 +14,8 @@ export const GAMES = [
   },
   {
     id: 'vm-002',
-    title: 'Mäng 2 · Ilma ajata',
-    short: 'Ilma ajalimiidita',
+    title: 'Mäng 2',
+    short: 'Mäng 2 · ilma ajata',
     description:
       'Ehita tugevate tormituulte eest kaitstud piirkonda optimaalseima konstruktsioonilahendusega 10-korruseline hoone.',
     scoring:

@@ -22,18 +22,24 @@ export default function GameSelect({ onPick }) {
           <div className="game-grid">
             {GAMES.map((g) => (
               <article key={g.id} className="game-card">
-                <header>
+                <header className="game-card-head">
+                  <span className="game-badge">{g.timeLimitMs ? 'Ajaga' : 'Ilma ajata'}</span>
                   <h2>{g.title}</h2>
                   <span className="game-limit">{formatLimit(g.timeLimitMs)}</span>
                 </header>
-                <p className="game-desc">{g.description}</p>
-                <p className="game-scoring"><strong>Punktiarvestus:</strong> {g.scoring}</p>
+                <div className="game-card-body">
+                  <p className="game-desc">{g.description}</p>
+                  <div className="game-scoring">
+                    <strong>Punktiarvestus</strong>
+                    <p>{g.scoring}</p>
+                  </div>
+                </div>
                 <button
                   type="button"
-                  className="btn btn-primary btn-lg"
+                  className="btn btn-primary btn-lg game-cta"
                   onClick={() => onPick(g.id)}
                 >
-                  Vali {g.short} →
+                  Alusta →
                 </button>
               </article>
             ))}

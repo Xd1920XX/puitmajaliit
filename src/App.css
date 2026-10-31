@@ -1751,66 +1751,114 @@ button:focus-visible,
 
 .game-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 18px;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
+  align-items: stretch;
 }
 
 .game-card {
   border: 1px solid var(--brand-line);
-  background: var(--brand-cream-light);
-  border-radius: 12px;
-  padding: 20px 22px;
+  background: var(--white);
+  border-radius: 14px;
+  padding: 22px 24px 20px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 16px;
+  box-shadow: 0 2px 8px rgba(29, 44, 36, 0.04);
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+.game-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px rgba(29, 44, 36, 0.12);
+  border-color: var(--brand-green-dark);
 }
 
-.game-card header {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 10px;
+.game-card-head {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 8px 10px;
   border: none;
   padding: 0;
   background: transparent;
 }
 
+.game-badge {
+  grid-column: 1 / -1;
+  justify-self: start;
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--brand-green-dark);
+  background: var(--brand-cream-light);
+  border: 1px solid var(--brand-line);
+  padding: 3px 9px;
+  border-radius: 999px;
+}
+
 .game-card h2 {
   margin: 0;
   font-family: var(--font-display);
-  font-size: 18px;
+  font-size: 22px;
   color: var(--brand-green-dark);
   text-transform: none;
   letter-spacing: 0;
+  line-height: 1.1;
 }
 
 .game-limit {
+  justify-self: end;
   font-size: 12px;
+  font-weight: 600;
   color: var(--brand-muted);
-  background: var(--white);
+  background: var(--brand-cream-light);
   border: 1px solid var(--brand-line);
-  padding: 3px 8px;
+  padding: 4px 10px;
   border-radius: 999px;
   white-space: nowrap;
 }
 
+.game-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  flex: 1;
+}
+
 .game-desc {
   margin: 0;
-  font-size: 14px;
-  line-height: 1.5;
+  font-size: 14.5px;
+  line-height: 1.55;
   color: var(--brand-ink);
 }
 
 .game-scoring {
   margin: 0;
   font-size: 13px;
-  line-height: 1.45;
+  line-height: 1.5;
   color: var(--brand-muted);
+  background: var(--brand-cream-light);
+  border-radius: 8px;
+  padding: 10px 12px;
+  border-left: 3px solid var(--brand-green-dark);
 }
+.game-scoring strong {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--brand-green-dark);
+  margin-bottom: 4px;
+}
+.game-scoring p { margin: 0; }
 
-.game-card .btn {
+.game-cta {
   margin-top: auto;
-  align-self: flex-start;
+  width: 100%;
+  flex: 0 0 auto;
+  justify-content: center;
 }
 
 /* Timer badge warning tone for low countdown */
