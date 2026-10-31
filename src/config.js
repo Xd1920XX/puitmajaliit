@@ -1,3 +1,33 @@
+// Available game modes. User picks one on the GameSelect screen before
+// building. `timeLimitMs: null` = untimed (counts up). Numeric = countdown;
+// auto-submit when it hits zero.
+export const GAMES = [
+  {
+    id: 'vm-001',
+    title: 'Mäng 1 · Ajaga',
+    short: 'Etteantud aja jooksul',
+    description:
+      'Ehita etteantud aja jooksul tugevate tormituulte eest kaitstud piirkonda optimaalse konstruktsioonilahendusega 10-korruseline hoone.',
+    scoring:
+      'Võidab see, kes saab etteantud ajaraamis rohkem punkte. Võrdse punktiarvu korral võidab lühema ajaga lahendaja.',
+    timeLimitMs: 10 * 60 * 1000,
+  },
+  {
+    id: 'vm-002',
+    title: 'Mäng 2 · Ilma ajata',
+    short: 'Ilma ajalimiidita',
+    description:
+      'Ehita tugevate tormituulte eest kaitstud piirkonda optimaalseima konstruktsioonilahendusega 10-korruseline hoone.',
+    scoring:
+      'Oluline on saada maksimaalne arv punkte. Võidab see, kes selle saavutab kiireima ajaga.',
+    timeLimitMs: null,
+  },
+]
+
+export function gameById(id) {
+  return GAMES.find((g) => g.id === id) ?? null
+}
+
 // Building capacity. User may stop earlier.
 export const MAX_FLOORS = 10
 
@@ -27,6 +57,15 @@ export const JAIKUS_VARIANTS = [
   { id: '50',  label: 'Naelutussamm 50 mm',  url: '/GLB/Jaikusseinad_OSB.glb' },
   { id: '70',  label: 'Naelutussamm 70 mm',  url: '/GLB/Jaikusseinad_OSB.glb' },
   { id: '100', label: 'Naelutussamm 100 mm', url: '/GLB/Jaikusseinad_OSB.glb' },
+]
+
+// Kips — layer-count variants. Same GLB for all; choice is logical, not
+// visual. Points: no points for kips per excel, but under-dim (wrong layer
+// count for floor) zeroes the whole score.
+export const KIPS_VARIANTS = [
+  { id: '1', label: '1-kihiline kips', url: '/GLB/Kips_2kihiline.glb' },
+  { id: '2', label: '2-kihiline kips', url: '/GLB/Kips_2kihiline.glb' },
+  { id: '3', label: '3-kihiline kips', url: '/GLB/Kips_2kihiline.glb' },
 ]
 
 // Trepikoda — automatic per-floor stairwell segments.
@@ -75,7 +114,7 @@ export const FLOOR_STEPS = [
   { id: 'karkass',             label: 'Konstruktsioon',        kind: 'variant', variants: KARKASS_VARIANTS, hideWhenAboveComplete: true,           hint: 'Vali kandev konstruktsioon' },
   { id: 'jaikus',              label: 'Jäikusseinad OSB',      kind: 'variant', variants: JAIKUS_VARIANTS,  skipWhenVariant: { karkass: ['CLT'] }, hint: 'OSB jäikusseinad' },
   { id: 'soojustus',           label: 'Isolatsioon',           kind: 'toggle',                                                                     hint: 'Soojus- ja akustiline isolatsioon' },
-  { id: 'kips',                label: 'Kipsplaadid',           kind: 'toggle',                                                                     hint: 'Kipsplaadid 1, 2 või 3 kihis' },
+  { id: 'kips',                label: 'Kipsplaadid',           kind: 'variant', variants: KIPS_VARIANTS,                                           hint: 'Vali kipsi kihtide arv' },
   { id: 'fassaad',             label: 'Fassaad',               kind: 'toggle',                                                                     hint: 'Välifassaad' },
   { id: 'trepikoda',           label: 'Trepikoda',             kind: 'toggle',                                                                     hint: 'Lisa trepikoda' },
   { id: 'rodu',                label: 'Rõdu',                  kind: 'toggle',  optional: true,                                                    hint: 'Lisa rõdu' },

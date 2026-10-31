@@ -26,7 +26,7 @@ const REQUIRED_MATERIALS = [
   {
     icon: '▭',
     label: 'Kipsplaadid',
-    what: 'Isolatsioonile järgnevad kipsplaadid, mis võivad olla kas 1-s, 2-s või 3-s kihis. Rohkem kihte = parem tulekindlus.',
+    what: 'Vali kipsi kihtide arv: 1 / 2 / 3. 1.–4. korrusel on nõutav 2-kihiline, 5.–10. korrusel 3-kihiline. Vale kipsivalik viib kogu skoori nulli.',
     when: 'Isolatsiooni järel — katab seina seestpoolt.',
   },
   {
@@ -92,19 +92,26 @@ function MaterialCard({ icon, label, what, when }) {
   )
 }
 
-export default function Intro({ onStart }) {
+export default function Intro({ onStart, game = null }) {
   return (
     <div className="intro-overlay" role="dialog" aria-modal="true" aria-labelledby="intro-title">
       <div className="intro-card">
         <header className="intro-head">
           <img src="/logo.png" alt="Woodhouse Academy" className="brand-logo intro-logo" />
           <div>
-            <h1 id="intro-title">Puitmaja ehitamise simulaator</h1>
-            <p className="intro-sub">Ehita puitmaja alt üles — kuni 10 korrust.</p>
+            <h1 id="intro-title">{game?.title ?? 'Puitmaja ehitamise simulaator'}</h1>
+            <p className="intro-sub">{game?.short ?? 'Ehita puitmaja alt üles — kuni 10 korrust.'}</p>
           </div>
         </header>
 
         <section className="intro-body">
+          {game && (
+            <div className="intro-task" role="note">
+              <strong>Ülesanne</strong>
+              <p>{game.description}</p>
+              <p className="intro-task-scoring">{game.scoring}</p>
+            </div>
+          )}
           <p className="intro-lead">
             Iga korrus koosneb kihtidest, mis lisatakse kindlas järjekorras. Vali igale korrusele sobivad materjalid, kinnita korrus ja liigu edasi. Kui paned katuse peale, on ehitis valmis ja saad selle esitada.
           </p>
@@ -148,7 +155,7 @@ export default function Intro({ onStart }) {
             <ul>
               <li>← / → nooleklahvid korruste vahetamiseks</li>
               <li>1–9 kiireks hüppeks konkreetsele korrusele</li>
-              <li>Taimer käivitub kui vajutad "Alusta"</li>
+              <li>Taimer käivitub siis, kui lisad esimese põranda</li>
             </ul>
           </div>
         </section>

@@ -16,13 +16,15 @@ export async function submitResult(launchToken, payload) {
   if (!launchToken) {
     throw new ApiError('Puudub launch token', 401)
   }
+  // Default task_id comes from env, but payload may override (per-game submit).
+  const body = { task_id: TASK_ID, ...payload }
   const res = await fetch(`${API_BASE}/game/results`, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${launchToken}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ task_id: TASK_ID, ...payload }),
+    body: JSON.stringify(body),
   })
   if (!res.ok) {
     let detail = ''

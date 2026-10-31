@@ -71,8 +71,8 @@ function BuildingSummary({ floors, roofId, elapsedMs = 0 }) {
     })
     return counts
   }, [builtFloors])
-  const { total: totalScore, message } = useMemo(() => evaluateGame(floors), [floors])
-  const isPerfect = message?.id === 'M05'
+  const { total: totalScore, rawTotal, zeroed, message } = useMemo(() => evaluateGame(floors), [floors])
+  const feedbackTone = zeroed ? 'is-crit' : message?.id === 'OK' ? 'is-ok' : 'is-warn'
 
   return (
     <div className="summary">
@@ -80,8 +80,14 @@ function BuildingSummary({ floors, roofId, elapsedMs = 0 }) {
         <span>Punktid</span>
         <strong>{totalScore} / {MAX_TOTAL_SCORE}</strong>
       </div>
+      {zeroed && rawTotal > 0 && (
+        <div className="summary-row summary-sub">
+          <span>Toorpunktid (enne korrutist)</span>
+          <strong>{rawTotal}</strong>
+        </div>
+      )}
       {message && (
-        <div className={`summary-feedback ${isPerfect ? 'is-ok' : 'is-warn'}`} role="note">
+        <div className={`summary-feedback ${feedbackTone}`} role="note">
           <strong>{message.title}</strong>
           <p>{message.body}</p>
         </div>
@@ -123,8 +129,13 @@ export default function Sidebar({
   onCopyPreviousFloor,
   onResetFloor,
   elapsedMs = 0,
+  remainingMs = null,
+  timerStarted = false,
   submitted = false,
+  game = null,
   academyUser = null,
+  onSubmitBuilding = null,
+  onResumeBuilding = null,
   onSubmitToAcademy = null,
   onReturnToAcademy = null,
 }) {
@@ -144,12 +155,12 @@ export default function Sidebar({
   const [confirmResetFloor, setConfirmResetFloor] = useState(false)
   const [showSubmit, setShowSubmit] = useState(false)
   const [infoStepId, setInfoStepId] = useState(null)
-  // Academy upload state. Fires once per submit modal open.
-  const [submitState, setSubmitState] = useState('idle') // idle | pending | ok | error | skipped
+  const [submitState, setSubmitState] = useState('idle')
   const [submitError, setSubmitError] = useState(null)
   const submitFiredRef = useRef(false)
 
-  const totalScore = useMemo(() => evaluateGame(floors).total, [floors])
+  const scoring = useMemo(() => evaluateGame(floors), [floors])
+  const totalScore = scoring.total
 
   const prevFloor = floors.find((f) => f.id === selectedFloorId - 1)
   const canCopyPrev =
@@ -188,14 +199,15 @@ export default function Sidebar({
 
   const handleConfirmFloor = () => {
     if (buildingSubmittable) {
-      setShowSubmit(true)
+      requestSubmit()
     } else if (hasNextFloor) {
       onSelectFloor(selectedFloorId + 1)
     }
   }
 
-  const handleSubmit = () => {
-    setShowSubmit(true)
+  // Fire Academy submit + open modal. Idempotent per "lock cycle" — resetSubmit
+  // (triggered by closing/resuming) clears the ref so re-submit is possible.
+  const fireAcademySubmit = () => {
     if (submitFiredRef.current) return
     submitFiredRef.current = true
     if (!academyUser || !onSubmitToAcademy) {
@@ -217,24 +229,64 @@ export default function Sidebar({
       })
   }
 
-  const resetSubmit = () => {
-    setShowSubmit(false)
-    submitFiredRef.current = false
-    setSubmitState('idle')
-    setSubmitError(null)
+  // User-initiated Esita click.
+  const requestSubmit = () => {
+    onSubmitBuilding?.()
+    setShowSubmit(true)
+    fireAcademySubmit()
   }
+
+  // When the parent flips `submitted` to true externally (e.g. countdown
+  // auto-submit), open modal + fire Academy submit if not already done.
+  useEffect(() => {
+    if (submitted && !showSubmit) {
+      setShowSubmit(true)
+      fireAcademySubmit()
+    }
+    if (!submitted) {
+      submitFiredRef.current = false
+      setSubmitState('idle')
+      setSubmitError(null)
+    }
+  }, [submitted]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Modal "Sulge" / X / backdrop click — resume building; parent clears submittedAt.
+  const handleResume = () => {
+    setShowSubmit(false)
+    onResumeBuilding?.()
+  }
+
+  // Timer label logic — countdown for timed games, elapsed for untimed.
+  const timed = remainingMs !== null
+  const timerValue = timed ? remainingMs : elapsedMs
+  const timerLabel = timed ? 'Aeg jäänud' : 'Aeg'
+  const timeOut = timed && remainingMs === 0 && submitted
+  const timerToneClass = (() => {
+    if (!timed || submitted) return ''
+    if (remainingMs <= 30_000) return 'is-crit'
+    if (remainingMs <= 120_000) return 'is-warn'
+    return ''
+  })()
 
   return (
     <aside className="sidebar">
       <section className="score">
         <div className="score-row">
+          <span>Mäng</span>
+          <strong>{game?.short ?? '—'}</strong>
+        </div>
+        <div className="score-row">
           <span>Korruseid valmis</span>
           <strong>{doneCount} / {MAX_FLOORS}</strong>
         </div>
         <div className="score-row">
-          <span>Aeg {submitted && <em className="score-flag">lukus</em>}</span>
-          <strong className={`timer ${submitted ? 'is-stopped' : ''}`}>
-            {formatTime(elapsedMs)}
+          <span>
+            {timerLabel}{' '}
+            {submitted && <em className="score-flag">lukus</em>}
+            {!submitted && !timerStarted && <em className="score-flag">ootel</em>}
+          </span>
+          <strong className={`timer ${submitted ? 'is-stopped' : ''} ${timerToneClass}`}>
+            {formatTime(timerValue)}
           </strong>
         </div>
         <div className="score-row">
@@ -420,7 +472,7 @@ export default function Sidebar({
               <button
                 type="button"
                 className="btn btn-primary is-pulse"
-                onClick={handleSubmit}
+                onClick={requestSubmit}
               >
                 Esita ehitis →
               </button>
@@ -490,8 +542,8 @@ export default function Sidebar({
 
       <Modal
         open={showSubmit}
-        onClose={resetSubmit}
-        title="Ehitis esitatud"
+        onClose={timeOut ? undefined : handleResume}
+        title={timeOut ? 'Aeg otsas — ehitis esitatud' : 'Ehitis esitatud'}
         tone="success"
         actions={
           <>
@@ -504,14 +556,21 @@ export default function Sidebar({
                 ← Tagasi Academy'sse
               </button>
             )}
-            <button type="button" className="btn btn-ghost" onClick={resetSubmit}>
-              Sulge
-            </button>
+            {!timeOut && (
+              <button
+                type="button"
+                className="btn btn-ghost"
+                onClick={handleResume}
+                title="Taimer tiksub edasi — saad jätkata ehitamist"
+              >
+                Sulge
+              </button>
+            )}
             <button
               type="button"
               className="btn btn-primary"
               onClick={() => {
-                resetSubmit()
+                setShowSubmit(false)
                 onReset()
               }}
             >
@@ -520,7 +579,7 @@ export default function Sidebar({
           </>
         }
       >
-        {showSubmit && submitState === 'ok' && <Confetti />}
+        {showSubmit && submitState === 'ok' && !scoring.zeroed && <Confetti />}
         <p className="modal-lead">Sinu puitmaja on esitatud. Vaata kokkuvõtet:</p>
         <AcademySubmitStatus
           state={submitState}
@@ -541,15 +600,15 @@ export default function Sidebar({
 const STEP_INFO = {
   porand: {
     title: 'Põrand',
-    body: 'Põrandakonstruktsioon moodustab iga korruse aluse. Lisatakse alati esimesena enne karkassi püstitamist. Tagab staatilise jäikuse ja kannab elanike + mööbli raskust alusstruktuurile.',
+    body: 'Põrandakonstruktsioon moodustab iga korruse aluse. Lisatakse alati esimesena enne karkassi püstitamist. Tagab staatilise jäikuse ja kannab elanike + mööbli raskust alusstruktuurile. Esimese põranda lisamine käivitab mängu taimeri.',
   },
   karkass: {
     title: 'Konstruktsioon',
-    body: 'Kandev konstruktsioon. 300/400/600 mm puitkarkass on klassikaline lahendus — number tähistab vahetugede sammu seinas. CLT (ristkihtliimpuit) on massiivpaneel, millel pole eraldi jäikusseinu ega seinaisolatsiooni vaja.',
+    body: 'Kandev konstruktsioon. 300/400/600 mm puitkarkass on klassikaline lahendus — number tähistab vahetugede sammu seinas. CLT (ristkihtliimpuit) on massiivpaneel, millel pole eraldi jäikusseinu ega seinaisolatsiooni vaja. Alumistel korrustel on koormus suurem (vaja tihedam samm või CLT), ülemistel väiksem.',
   },
   jaikus: {
     title: 'Jäikusseinad OSB',
-    body: 'OSB plaadid naelutatakse karkassi peale, muutes seina jäigaks tuulekoormuste vastu. Naelutussamm (50/70/100 mm) määrab, kui tihedalt naelu lüüakse — mida tihedam, seda tugevam. CLT seinas pole jäikust vaja, kuna paneel ise on jäik.',
+    body: 'OSB plaadid naelutatakse karkassi peale, muutes seina jäigaks tuulekoormuste vastu. Naelutussamm (50/70/100 mm) määrab, kui tihedalt naelu lüüakse — mida tihedam, seda tugevam. CLT seinas pole jäikust vaja, kuna paneel ise on jäik. 1.–4. korrusel annab CLT valik automaatselt OSB punktid.',
   },
   soojustus: {
     title: 'Isolatsioon',
@@ -557,7 +616,7 @@ const STEP_INFO = {
   },
   kips:  {
     title: 'Kipsplaadid',
-    body: 'Isolatsioonile järgnevad kipsplaadid, mis võivad olla kas 1-s, 2-s või 3-s kihis. Mida rohkem kihte, seda parem tulekindlus. Paigaldatakse peale isolatsiooni, enne fassaadi.',
+    body: 'Isolatsioonile järgnevad kipsplaadid, mis võivad olla 1, 2 või 3 kihis. Mida rohkem kihte, seda parem tulekindlus. 1.–4. korrusel on nõutav 2-kihiline (koos CLT-ga tulepüsivuse tagamiseks), 5.–10. korrusel 3-kihiline. Vale kipsivaliku korral loetakse ehitis tulepüsivuse osas aladimensioneerituks.',
   },
   fassaad: {
     title: 'Fassaad',
