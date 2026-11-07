@@ -28,7 +28,8 @@ function VariantGrid({ step, selectedId, enabled, onPick }) {
             aria-checked={selected}
             className={`variant ${selected ? 'is-selected' : ''}`}
             disabled={!enabled}
-            onClick={() => onPick(v.id)}
+            onClick={() => onPick(selected ? null : v.id)}
+            title={selected ? 'Klõpsa uuesti eemaldamiseks' : undefined}
           >
             {v.label}
           </button>
