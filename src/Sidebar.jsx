@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import Modal from './Modal.jsx'
 import Confetti from './Confetti.jsx'
-import { FLOOR_STEPS, KARKASS_VARIANTS, LAYERS, MAX_FLOORS } from './config.js'
+import { FASSAAD_VARIANTS, FLOOR_STEPS, KARKASS_VARIANTS, LAYERS, MAX_FLOORS, fassaadVariantById } from './config.js'
 import {
   canAddKatus,
   canSelectFloor,
@@ -51,6 +51,52 @@ function LayerToggle({ label, on, enabled, onClick }) {
       <span>{label}</span>
       <span className="layer-state">{on ? 'Lisatud ✓' : 'Lisa'}</span>
     </button>
+  )
+}
+
+// Fassaad step UI — building-level variant choice. Until a variant is
+// picked, show A/B/C selector (clicking one sets the global variant and
+// toggles fassaad on for this floor). Once chosen, show the regular
+// toggle + "Vaheta viimistlus" to clear the variant across the build.
+function FassaadStep({ enabled, floor, variantId, onPickVariant, onToggle }) {
+  const current = fassaadVariantById(variantId)
+  if (!current) {
+    return (
+      <div className="variant-grid" role="radiogroup" aria-label="Fassaadi viimistlus">
+        {FASSAAD_VARIANTS.map((v) => (
+          <button
+            key={v.id}
+            type="button"
+            role="radio"
+            aria-checked={false}
+            className="variant"
+            disabled={!enabled}
+            onClick={() => onPickVariant(v.id)}
+            title="Vali fassaadi viimistlus"
+          >
+            {v.label}
+          </button>
+        ))}
+      </div>
+    )
+  }
+  return (
+    <div className="fassaad-step">
+      <LayerToggle
+        label={`Fassaad — ${current.label}`}
+        on={floor.fassaad}
+        enabled={enabled}
+        onClick={onToggle}
+      />
+      <button
+        type="button"
+        className="fassaad-swap"
+        onClick={() => onPickVariant(null)}
+        title="Lähtesta fassaadi viimistluse valik (mõjutab kogu hoonet)"
+      >
+        ⟲ Vaheta viimistlus
+      </button>
+    </div>
   )
 }
 
@@ -123,6 +169,8 @@ function BuildingSummary({ floors, roofId, elapsedMs = 0 }) {
 export default function Sidebar({
   floors,
   selectedFloorId,
+  fassaadVariant = null,
+  onPickFassaadVariant = null,
   onSelectFloor,
   onVariant,
   onToggleLayer,
@@ -431,6 +479,21 @@ export default function Sidebar({
                       selectedId={floor[step.id]}
                       enabled={enabled}
                       onPick={(id) => onVariant(selectedFloorId, step.id, id)}
+                    />
+                  ) : step.id === 'fassaad' ? (
+                    <FassaadStep
+                      enabled={enabled}
+                      floor={floor}
+                      variantId={fassaadVariant}
+                      onPickVariant={(id) => {
+                        onPickFassaadVariant?.(id)
+                        // Picking a variant implies "add fassaad on this
+                        // floor"; clearing it (null) leaves the toggle as-is.
+                        if (id && !floor.fassaad) {
+                          onToggleLayer(selectedFloorId, 'fassaad')
+                        }
+                      }}
+                      onToggle={() => onToggleLayer(selectedFloorId, 'fassaad')}
                     />
                   ) : (
                     <LayerToggle

@@ -17,16 +17,19 @@ import {
   FLOOR_HEIGHT,
   MAX_FLOORS,
   SOOJUSTUS_URLS,
-  TREPIKODA_SEGMENTS,
+  FASSAAD_VARIANTS,
+  TREPIKODA_OFFSETS,
+  fassaadVariantById,
+  fassaadWallUrl,
 } from './config.js'
 import { isFloorComplete, stepApplies } from './floorState.js'
 
 const VARIANT_STEPS = FLOOR_STEPS.filter((s) => s.kind === 'variant')
 const TOGGLE_STEPS = FLOOR_STEPS.filter((s) => s.kind === 'toggle')
-// Toggle steps whose GLB lives in LAYERS. `trepikoda` is a toggle step but
-// its segments live in TREPIKODA_SEGMENTS and render via a dedicated code
-// path (1K vs 2K per floor index), so skip it in the generic layer loop.
-const LAYER_TOGGLE_STEPS = TOGGLE_STEPS.filter((s) => LAYERS[s.id])
+// Toggle steps whose GLB lives in LAYERS with a direct `url`. Others
+// (fassaad, katus, trepikoda) resolve GLBs from the chosen fassaad variant
+// and render via dedicated code paths.
+const LAYER_TOGGLE_STEPS = TOGGLE_STEPS.filter((s) => LAYERS[s.id]?.url)
 
 const configuredScenes = new WeakSet()
 function configureScene(scene) {
@@ -79,15 +82,18 @@ function stepCoveredFromAbove(step, floorAbove) {
   return false
 }
 
-function Floor({ index, floor, floorAbove, collapsed }) {
+function Floor({ index, floor, floorAbove, collapsed, fassaadVariant }) {
   const isGround = index === 0
-  const trepikoda = isGround ? TREPIKODA_SEGMENTS.ground : TREPIKODA_SEGMENTS.upper
-  // Trepikoda is now driven by the per-floor step toggle (user opts in),
-  // not auto. 1K segment on floor 1, 2K on upper floors.
+  const wallUrl = fassaadWallUrl(fassaadVariant, index)
+  const trepikodaUrl = fassaadVariant
+    ? (isGround ? fassaadVariant.trepikoda1K : fassaadVariant.trepikoda2K)
+    : null
+  const trepikodaOffset = isGround ? TREPIKODA_OFFSETS.ground : TREPIKODA_OFFSETS.upper
+  const katusUrl = fassaadVariant?.katus ?? null
   return (
     <group position={[0, index * FLOOR_HEIGHT, 0]}>
-      {floor.trepikoda && (
-        <Model url={trepikoda.url} yOffset={trepikoda.yOffset ?? 0} />
+      {floor.trepikoda && trepikodaUrl && (
+        <Model url={trepikodaUrl} yOffset={trepikodaOffset} />
       )}
       {VARIANT_STEPS.map((step) => {
         if (collapsed && step.hideWhenCollapsed) return null
@@ -97,13 +103,18 @@ function Floor({ index, floor, floorAbove, collapsed }) {
           <Model key={step.id} url={entry.url} yOffset={entry.yOffset ?? 0} />
         ) : null
       })}
-      {/* Composite soojustus render — one toggle, GLBs chosen by karkass.
-          CLT: bathroom wool only. Puitkarkass (300/400/600): wall + bath wool. */}
+      {/* Composite soojustus render — one toggle lights up:
+          - interior wall wool (puitkarkass only)
+          - bathroom wool (always when karkass chosen)
+          - exterior facade insulation (always when karkass chosen) */}
       {floor.soojustus && floor.karkass && floor.karkass !== 'CLT' && (
         <Model url={SOOJUSTUS_URLS.wall} />
       )}
       {floor.soojustus && floor.karkass && (
         <Model url={SOOJUSTUS_URLS.bath} />
+      )}
+      {floor.soojustus && floor.karkass && (
+        <Model url={SOOJUSTUS_URLS.fassaad} />
       )}
       {LAYER_TOGGLE_STEPS.map((step) => {
         if (!floor[step.id]) return null
@@ -120,11 +131,19 @@ function Floor({ index, floor, floorAbove, collapsed }) {
         const layer = LAYERS[step.id]
         return <Model key={step.id} url={layer.url} yOffset={layer.yOffset ?? 0} />
       })}
+      {/* Fassaad + katus: URLs come from building-level fassaadVariant,
+          not LAYERS. Both are exterior → stay visible when collapsed. */}
+      {floor.fassaad && wallUrl && (
+        <Model url={wallUrl} />
+      )}
+      {floor.katus && katusUrl && (
+        <Model url={katusUrl} />
+      )}
     </group>
   )
 }
 
-function House({ floors, selectedFloorId }) {
+function House({ floors, selectedFloorId, fassaadVariant }) {
   return (
     <>
       {BASELINE_URLS.map((url) => (
@@ -145,6 +164,7 @@ function House({ floors, selectedFloorId }) {
             floor={f}
             floorAbove={floorAbove}
             collapsed={collapsed}
+            fassaadVariant={fassaadVariant}
           />
         )
       })}
@@ -188,7 +208,11 @@ function CameraTween({ tweenRef, controlsRef }) {
   return null
 }
 
-export default function HouseViewer({ floors, selectedFloorId = 1 }) {
+export default function HouseViewer({ floors, selectedFloorId = 1, fassaadVariant = null }) {
+  const fassaadVariantObj = useMemo(
+    () => fassaadVariantById(fassaadVariant),
+    [fassaadVariant],
+  )
   const controls = useRef(null)
   const cameraRef = useRef(null)
   const invalidateRef = useRef(null)
@@ -311,7 +335,7 @@ export default function HouseViewer({ floors, selectedFloorId = 1 }) {
         <directionalLight position={[20, 36, 14]} intensity={1.6} />
         <directionalLight position={[-18, 20, -14]} intensity={0.5} />
         <Suspense fallback={null}>
-          <House floors={floors} selectedFloorId={selectedFloorId} />
+          <House floors={floors} selectedFloorId={selectedFloorId} fassaadVariant={fassaadVariantObj} />
         </Suspense>
         <ContactShadows
           position={[0, 0.01, 0]}
@@ -474,5 +498,9 @@ function LoadingOverlay() {
 BASELINE_URLS.forEach((url) => useGLTF.preload(url))
 VARIANT_STEPS.forEach((s) => s.variants.forEach((v) => useGLTF.preload(v.url)))
 LAYER_TOGGLE_STEPS.forEach((s) => useGLTF.preload(LAYERS[s.id].url))
-Object.values(TREPIKODA_SEGMENTS).forEach((seg) => useGLTF.preload(seg.url))
 Object.values(SOOJUSTUS_URLS).forEach((url) => useGLTF.preload(url))
+FASSAAD_VARIANTS.forEach((v) => {
+  ;[v.wall, v.wall1K, v.wall2K, v.trepikoda1K, v.trepikoda2K, v.katus]
+    .filter(Boolean)
+    .forEach((url) => useGLTF.preload(url))
+})

@@ -48,6 +48,9 @@ export default function App() {
   const [introSeen, setIntroSeen] = useState(false)
   const [restorePrompt, setRestorePrompt] = useState(null) // saved blob
   const [academyUser] = useState(() => readLaunchToken())
+  // Building-level facade finish choice (A/B/C). Locks on first pick;
+  // reset explicitly via Sidebar to swap.
+  const [fassaadVariant, setFassaadVariant] = useState(null)
 
   // Timer state:
   //   startedAt   — set when the first `porand` toggles on. Null before.
@@ -137,12 +140,13 @@ export default function App() {
           elapsedMs,
           submittedAt,
           introSeen: true,
+          fassaadVariant,
         }
         localStorage.setItem(STORAGE_KEY, JSON.stringify(payload))
       } catch {}
     }, 300)
     return () => clearTimeout(t)
-  }, [floors, selectedFloorId, selectedGameId, startedAt, elapsedMs, submittedAt, introSeen])
+  }, [floors, selectedFloorId, selectedGameId, startedAt, elapsedMs, submittedAt, introSeen, fassaadVariant])
 
   const pickGame = (id) => {
     setSelectedGameId(id)
@@ -165,6 +169,7 @@ export default function App() {
       setStartedAt(Date.now() - elapsed)
     }
     setSubmittedAt(s.submittedAt ?? null)
+    setFassaadVariant(s.fassaadVariant ?? null)
     setIntroSeen(true)
     setRestorePrompt(null)
   }
@@ -217,6 +222,7 @@ export default function App() {
     setStartedAt(null)
     setElapsedMs(0)
     setSubmittedAt(null)
+    setFassaadVariant(null)
     try { localStorage.removeItem(STORAGE_KEY) } catch {}
   }
 
@@ -292,6 +298,7 @@ export default function App() {
               <HouseViewer
                 floors={floors}
                 selectedFloorId={selectedFloorId}
+                fassaadVariant={fassaadVariant}
               />
             </Suspense>
           </ErrorBoundary>
@@ -312,6 +319,8 @@ export default function App() {
           <Sidebar
             floors={floors}
             selectedFloorId={selectedFloorId}
+            fassaadVariant={fassaadVariant}
+            onPickFassaadVariant={setFassaadVariant}
             onSelectFloor={setSelectedFloorId}
             onVariant={setVariant}
             onToggleLayer={toggleLayer}

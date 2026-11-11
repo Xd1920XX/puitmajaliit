@@ -28,15 +28,15 @@ Port 5174 määratud `vite.config.js`-is (mitte Vite default 5173). Lint / test 
 Ühe korruse alamsammud (linear gate — järgmine kohustuslik samm avaneb ainult siis kui eelmine kohustuslik tehtud; valikulised sammud ei blokeeri järgnevaid):
 
 1. **Põrand** — toggle (kohustuslik, esimene)
-2. **Karkass** — variant (`300`, `400`, `600`, `CLT`) — kohustuslik
-3. **Jäikusseinad OSB** — toggle (kohustuslik)
-4. **Soojustusvill** — toggle (kohustuslik)
-5. **Soojustus (vannituba)** — toggle (valikuline)
-6. **Kips** — toggle (kohustuslik)
-7. **Rõdu** — toggle (valikuline)
-8. **Fassaad** — toggle (kohustuslik)
+2. **Konstruktsioon** (karkass) — variant (`300`, `400`, `600`, `CLT`) — kohustuslik. Uued v3 GLB-d sisaldavad ka vaheseinu.
+3. **Jäikusseinad OSB** — variant (naelutussamm `50`/`70`/`100`) — kohustuslik puitkarkassil, CLT-l ei kehti (skip).
+4. **Isolatsioon** — toggle (kohustuslik). Üks nupp = siseseinade vill (puitkarkassil) + vannitoa vill + fassaadi isolatsioon. CLT-l jääb siseseinte vill ära.
+5. **Kipsplaadid** — variant (`1`/`2`/`3` kihti) — kohustuslik. Igal variandil oma GLB.
+6. **Fassaad** — toggle (kohustuslik). Esimese fassaadi lisamisega avaneb **hoone-tasemel** viimistluse valik (A/B/C), mis jääb kõigile korrustele peale.
+7. **Trepikoda** — toggle (kohustuslik). GLB tuleb fassaadi viimistluse variandi küljest.
+8. **Rõdu** — toggle (valikuline)
 9. **Lagi** — toggle (kohustuslik, sulgeb korruse)
-10. **Katus** — toggle (valikuline, tavaliselt ülemisel korrusel)
+10. **Katus** — toggle (valikuline, lisab ainult 10. korrusele). GLB tuleb fassaadi viimistluse variandi küljest.
 
 Täpne loetelu + metadata: `src/config.js:FLOOR_STEPS`. Valikuline samm on märgitud `optional: true` lipuga.
 
@@ -44,7 +44,9 @@ Korrus loetakse valmis kui kõik **mittevalikulised** sammud on tehtud. Korrus N
 
 **Baseline** (alati nähtav): maa-alune parkla, maapinna parkla, maapinna rõdu — kolm GLB-d, `BASELINE_URLS`.
 
-**Trepikoda** on automaatne — pole kasutaja valik. Floor 1 saab `Trepikoda_1K.glb` (maapinna segment), floor 2..10 saavad `Trepikoda_2K.glb` igaüks. Renderdub kui korrusel on vähemalt üks samm tehtud (`isFloorStarted`).
+**Trepikoda** on per-korrus toggle (`FLOOR_STEPS.trepikoda`), kuid selle GLB-d tulevad fassaadi viimistluse variandi küljest (A/B/C → `Trepikoda_1K_Viimistlus_X.glb` / `Trepikoda_2K_Viimistlus_X.glb`). Floor 1 saab 1K segmendi, floor 2..10 saavad 2K segmendi (offset `-FLOOR_HEIGHT`).
+
+**Fassaadi viimistlus** on **hoone-tasemel** valik (üks kogu ehitisele, mitte per-korrus). Variant A/B/C → mõjutab fassaadi seinu + trepikoda 1K/2K + katust. Valik lukustub peale esimest kinnitust — Sidebaris on "Vaheta viimistlus" nupp mis lähtestab valiku ja avab uuesti pildipaneeli. Hoitakse `App.jsx`-is `fassaadVariant` state-is + persist'itakse localStorage'is. Variant C eripära: seinad on jagatud `_1K` + `_2K+` failideks (`fassaadWallUrl(variant, floorIndex)` helper).
 
 **Kasutaja ei pea 10-ni ehitama** — võib igal ajal peatuda.
 
@@ -61,9 +63,11 @@ Kui mõni teine GLB origin pole korruse alumises pinnas (Y=0) või kõrgus pole 
 ## Andmevoog
 
 ```
-App.jsx (olek: { floors: [10x Floor], selectedFloorId })
-  ├─ HouseViewer.jsx  (renderdab baseline + kõik floors Y-offsetiga, clone per instance)
-  └─ Sidebar.jsx      (chip-navigaator 1..10 + valitud korruse alamsammude paneel)
+App.jsx (olek: { floors: [10x Floor], selectedFloorId, fassaadVariant })
+  ├─ HouseViewer.jsx  (renderdab baseline + kõik floors Y-offsetiga, clone per instance;
+  │                    fassaad/trepikoda/katus GLB-d tulevad fassaadVariant'ist)
+  └─ Sidebar.jsx      (chip-navigaator 1..10 + valitud korruse alamsammude paneel;
+                       fassaadi step näitab A/B/C pildipaneeli kui variant on null)
 ```
 
 `Floor` olekukuju tuletub `FLOOR_STEPS`-ist automaatselt (`App.jsx:emptyFloor`):
@@ -71,43 +75,60 @@ App.jsx (olek: { floors: [10x Floor], selectedFloorId })
 { id: 1..10,
   porand: boolean,
   karkass: null | '300' | '400' | '600' | 'CLT',
-  jaikus: boolean,
+  jaikus: null | '50' | '70' | '100',
   soojustus: boolean,
-  soojustus_vannituba: boolean,
-  kips: boolean,
-  rodu: boolean,
+  kips: null | '1' | '2' | '3',
   fassaad: boolean,
+  trepikoda: boolean,
+  rodu: boolean,
   lagi: boolean,
   katus: boolean }
 ```
 
 `selectedFloorId` = kasutaja poolt valitud korrus (see mille alamsammud paneelis näidatakse). Vaikimisi 1.
 
+`fassaadVariant` = `null | 'A' | 'B' | 'C'`. Hoone-tasemel fassaadi viimistluse valik. Null → fassaadi stepi klõpsamisel kuvatakse pildipaneel, mitte toggle. Pärast valimist lukustub — swap toimub ainult "Vaheta viimistlus" nupu kaudu Sidebaris.
+
 ## GLB failid
 
 ```
 public/GLB/
-  Parkla.glb                   # baseline — maa-alune parkla
-  Maapind_Parkla.glb           # baseline — maapinna parkla
-  Rodu_Maapinnal.glb           # baseline — maapinna rõdu
-  Karkass_300.glb              # karkassi variandid (üks per korrus)
+  Parkla.glb                           # baseline — maa-alune parkla
+  Maapind_Parkla.glb                   # baseline — maapinna parkla
+  Rodu_Maapinnal.glb                   # baseline — maapinna rõdu
+  Karkass_300.glb                      # karkassi variandid (v3: koos vaheseintega)
   Karkass_400.glb
   Karkass_600.glb
   Karkass_CLT.glb
-  Trepikoda_1K.glb             # trepikoja maapinna segment (floor 1)
-  Trepikoda_2K.glb             # trepikoja korduv segment (floor 2+, offset -FLOOR_HEIGHT)
   Jaikusseinad_OSB.glb
-  Soojustusvill.glb
-  Soojustusvill_Vannituba.glb
-  Kips_2kihiline.glb
+  Soojustusvill.glb                    # siseseinade mineraalvill (puitkarkass)
+  Soojustusvill_Vannituba.glb          # vannitoa mineraalvill
+  Fassaadi_isolatsioon.glb             # välisfassaadi isolatsioon — lisatakse koos soojustusega
+  Kips_1_kiht.glb                      # kips — iga kiht eraldi fail
+  Kips_2_kiht.glb
+  Kips_3_kiht.glb
   Porand.glb
   Lagi.glb
   Rodu.glb
-  Fassaad.glb
-  Katused.glb
+  # Fassaadi viimistlus A — 4 faili
+  Fassaadi_viimistlus_A.glb            # fassaadi sein (kõik korrused)
+  Trepikoda_1K_Viimistlus_A.glb        # trepikoda floor 1
+  Trepikoda_2K_Viimistlus_A.glb        # trepikoda floor 2..10 (offset -FLOOR_HEIGHT)
+  Katused_Viimistlus_A.glb             # katus
+  # Fassaadi viimistlus B — 4 faili (samad slotid)
+  Fassaadi_viimistlus_B.glb
+  Trepikoda_1K_Viimistlus_B.glb
+  Trepikoda_2K_Viimistlus_B.glb
+  Katused_Viimistlus_B.glb
+  # Fassaadi viimistlus C — 5 faili (seinad jagatud 1K/2K+)
+  Fassaadi_viimistlus_C_1K.glb         # fassaadi sein floor 1
+  Fassaadi_viimistlus_C_2K.glb         # fassaadi sein floor 2..10
+  Trepikoda_1K_Viimistlus_C.glb
+  Trepikoda_2K_Viimistlus_C.glb
+  Katused_Viimistlus_C.glb
 ```
 
-URL-id + variandid: `src/config.js` (`BASELINE_URLS`, `KARKASS_VARIANTS`, `TREPIKODA_GROUND_URL`, `TREPIKODA_UPPER_URL`, `LAYERS`, `FLOOR_STEPS`, `MAX_FLOORS`, `FLOOR_HEIGHT`).
+URL-id + variandid: `src/config.js` (`BASELINE_URLS`, `KARKASS_VARIANTS`, `KIPS_VARIANTS`, `JAIKUS_VARIANTS`, `FASSAAD_VARIANTS`, `TREPIKODA_OFFSETS`, `SOOJUSTUS_URLS`, `LAYERS`, `FLOOR_STEPS`, `MAX_FLOORS`, `FLOOR_HEIGHT`).
 
 `HouseViewer.jsx` allservas preload'itakse kõik GLB-d et togglid ei stall'iks võrgu peale.
 

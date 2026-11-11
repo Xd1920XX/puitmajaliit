@@ -59,44 +59,95 @@ export const JAIKUS_VARIANTS = [
   { id: '100', label: 'Naelutussamm 100 mm', url: '/GLB/Jaikusseinad_OSB.glb' },
 ]
 
-// Kips — layer-count variants. Same GLB for all; choice is logical, not
-// visual. Points: no points for kips per excel, but under-dim (wrong layer
-// count for floor) zeroes the whole score.
+// Kips — layer-count variants. Each has its own GLB (visible layer stack).
+// Points: no points for kips per excel, but under-dim (wrong layer count
+// for floor) zeroes the whole score.
 export const KIPS_VARIANTS = [
-  { id: '1', label: '1-kihiline kips', url: '/GLB/Kips_2kihiline.glb' },
-  { id: '2', label: '2-kihiline kips', url: '/GLB/Kips_2kihiline.glb' },
-  { id: '3', label: '3-kihiline kips', url: '/GLB/Kips_2kihiline.glb' },
+  { id: '1', label: '1-kihiline kips', url: '/GLB/Kips_1_kiht.glb' },
+  { id: '2', label: '2-kihiline kips', url: '/GLB/Kips_2_kiht.glb' },
+  { id: '3', label: '3-kihiline kips', url: '/GLB/Kips_3_kiht.glb' },
 ]
 
-// Trepikoda — automatic per-floor stairwell segments.
-// `ground` lands on floor 1; `upper` repeats for floors 2..N.
-// `yOffset` compensates for GLB-origin quirks (upper's geometry sits one
-// floor-height above its local origin, so group is nudged down).
-export const TREPIKODA_SEGMENTS = {
-  ground: { url: '/GLB/Trepikoda_1K.glb', yOffset: 0 },
-  upper:  { url: '/GLB/Trepikoda_2K.glb', yOffset: -FLOOR_HEIGHT },
+// Fassaadi viimistluse variandid — building-level choice (one per build,
+// not per floor). Each variant carries 4 URLs: facade wall(s), stairwell
+// 1K segment, stairwell 2K segment, roof. Variant C ships wall as two
+// GLBs (ground + upper) — all others use a single `wall` URL for every
+// storey.
+//
+// User picks one on first use of the Fassaad step, then it locks for the
+// rest of the build (swap requires explicit reset in Sidebar).
+export const FASSAAD_VARIANTS = [
+  {
+    id: 'A',
+    label: 'Viimistlus A',
+    wall:         '/GLB/Fassaadi_viimistlus_A.glb',
+    trepikoda1K:  '/GLB/Trepikoda_1K_Viimistlus_A.glb',
+    trepikoda2K:  '/GLB/Trepikoda_2K_Viimistlus_A.glb',
+    katus:        '/GLB/Katused_Viimistlus_A.glb',
+  },
+  {
+    id: 'B',
+    label: 'Viimistlus B',
+    wall:         '/GLB/Fassaadi_viimistlus_B.glb',
+    trepikoda1K:  '/GLB/Trepikoda_1K_Viimistlus_B.glb',
+    trepikoda2K:  '/GLB/Trepikoda_2K_Viimistlus_B.glb',
+    katus:        '/GLB/Katused_Viimistlus_B.glb',
+  },
+  {
+    id: 'C',
+    label: 'Viimistlus C',
+    // C has separate ground + upper facade walls.
+    wall1K:       '/GLB/Fassaadi_viimistlus_C_1K.glb',
+    wall2K:       '/GLB/Fassaadi_viimistlus_C_2K.glb',
+    trepikoda1K:  '/GLB/Trepikoda_1K_Viimistlus_C.glb',
+    trepikoda2K:  '/GLB/Trepikoda_2K_Viimistlus_C.glb',
+    katus:        '/GLB/Katused_Viimistlus_C.glb',
+  },
+]
+
+export function fassaadVariantById(id) {
+  return FASSAAD_VARIANTS.find((v) => v.id === id) ?? null
+}
+
+// Resolve the correct wall URL for a given floor index (0-based).
+// Variant C has 1K/2K+ split, others use the same `wall` on every floor.
+export function fassaadWallUrl(variant, floorIndex) {
+  if (!variant) return null
+  if (variant.wall) return variant.wall
+  return floorIndex === 0 ? variant.wall1K : variant.wall2K
+}
+
+// Trepikoda — per-floor stairwell segments. URL resolves from the chosen
+// fassaad variant; this map keeps the per-segment `yOffset` quirk (upper's
+// geometry sits one floor-height above its local origin, so group is
+// nudged down).
+export const TREPIKODA_OFFSETS = {
+  ground: 0,
+  upper:  -FLOOR_HEIGHT,
 }
 
 // Toggleable layers within a floor. Key = state field on Floor object.
-// `yOffset` optional (defaults to 0). Variant-kind steps (karkass, jaikus)
-// list their URLs in their variants array, not here.
-// `soojustus` is handled externally in HouseViewer because it renders a
-// different combination of GLBs based on karkass choice — see SOOJUSTUS_URLS.
+// `yOffset` optional (defaults to 0). Variant-kind steps (karkass, jaikus,
+// kips) list their URLs in their variants array, not here.
+// Layers whose GLB is picked by external state (soojustus → karkass,
+// fassaad/katus → fassaadVariant) have no `url` here and are rendered via
+// dedicated code paths in HouseViewer.
 export const LAYERS = {
-  kips:                { label: 'Kipsplaadid',            url: '/GLB/Kips_2kihiline.glb' },
-  porand:              { label: 'Põrand',                 url: '/GLB/Porand.glb' },
-  lagi:                { label: 'Lagi',                   url: '/GLB/Lagi.glb' },
-  rodu:                { label: 'Rõdu',                   url: '/GLB/Rodu.glb' },
-  fassaad:             { label: 'Fassaad',                url: '/GLB/Fassaad.glb' },
-  katus:               { label: 'Katus',                  url: '/GLB/Katused.glb' },
+  porand: { label: 'Põrand', url: '/GLB/Porand.glb' },
+  lagi:   { label: 'Lagi',   url: '/GLB/Lagi.glb' },
+  rodu:   { label: 'Rõdu',   url: '/GLB/Rodu.glb' },
+  // Facade + roof render from the chosen FASSAAD_VARIANTS — no direct URL.
+  fassaad: { label: 'Fassaad' },
+  katus:   { label: 'Katus' },
 }
 
-// Composite soojustus render — one toggle, picks the right wool mix:
-//   puitkarkass → wall wool + bathroom wool together
-//   CLT         → bathroom wool only
+// Composite soojustus render — one toggle lights up the full insulation
+// package: interior wall wool (puitkarkass only) + bathroom wool +
+// exterior facade insulation (always, independent of karkass).
 export const SOOJUSTUS_URLS = {
-  wall: '/GLB/Soojustusvill.glb',
-  bath: '/GLB/Soojustusvill_Vannituba.glb',
+  wall:    '/GLB/Soojustusvill.glb',
+  bath:    '/GLB/Soojustusvill_Vannituba.glb',
+  fassaad: '/GLB/Fassaadi_isolatsioon.glb',
 }
 
 // Sub-steps within a single floor. Linear gate — a required step blocks the
