@@ -20,7 +20,7 @@ import {
   FASSAAD_VARIANTS,
   TREPIKODA_OFFSETS,
   fassaadVariantById,
-  fassaadWallUrl,
+  fassaadWall,
 } from './config.js'
 import { isFloorComplete, stepApplies } from './floorState.js'
 
@@ -84,7 +84,7 @@ function stepCoveredFromAbove(step, floorAbove) {
 
 function Floor({ index, floor, floorAbove, collapsed, fassaadVariant }) {
   const isGround = index === 0
-  const wallUrl = fassaadWallUrl(fassaadVariant, index)
+  const wall = fassaadWall(fassaadVariant, index)
   const trepikodaUrl = fassaadVariant
     ? (isGround ? fassaadVariant.trepikoda1K : fassaadVariant.trepikoda2K)
     : null
@@ -133,8 +133,8 @@ function Floor({ index, floor, floorAbove, collapsed, fassaadVariant }) {
       })}
       {/* Fassaad + katus: URLs come from building-level fassaadVariant,
           not LAYERS. Both are exterior → stay visible when collapsed. */}
-      {floor.fassaad && wallUrl && (
-        <Model url={wallUrl} />
+      {floor.fassaad && wall && (
+        <Model url={wall.url} yOffset={wall.yOffset} />
       )}
       {floor.katus && katusUrl && (
         <Model url={katusUrl} />

@@ -109,12 +109,15 @@ export function fassaadVariantById(id) {
   return FASSAAD_VARIANTS.find((v) => v.id === id) ?? null
 }
 
-// Resolve the correct wall URL for a given floor index (0-based).
-// Variant C has 1K/2K+ split, others use the same `wall` on every floor.
-export function fassaadWallUrl(variant, floorIndex) {
+// Resolve the correct wall GLB + yOffset for a given floor index (0-based).
+// Variant C has 1K/2K+ split; the 2K+ GLB geometry sits one floor-height
+// above its local origin (same quirk as Trepikoda_2K), so apply
+// -FLOOR_HEIGHT offset on floors 2..10.
+export function fassaadWall(variant, floorIndex) {
   if (!variant) return null
-  if (variant.wall) return variant.wall
-  return floorIndex === 0 ? variant.wall1K : variant.wall2K
+  if (variant.wall) return { url: variant.wall, yOffset: 0 }
+  if (floorIndex === 0) return { url: variant.wall1K, yOffset: 0 }
+  return { url: variant.wall2K, yOffset: -FLOOR_HEIGHT }
 }
 
 // Trepikoda — per-floor stairwell segments. URL resolves from the chosen
