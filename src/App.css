@@ -1384,6 +1384,31 @@ button:focus-visible,
   opacity: 0.85;
 }
 
+.fassaad-step {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.fassaad-swap {
+  align-self: flex-end;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--brand-line);
+  background: transparent;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--brand-muted);
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+
+.fassaad-swap:hover {
+  color: var(--brand-ink);
+  border-color: var(--brand-green);
+  background: var(--brand-cream-light);
+}
+
 .sidebar-foot {
   padding: 12px;
   border-top: 1px solid var(--brand-line);
