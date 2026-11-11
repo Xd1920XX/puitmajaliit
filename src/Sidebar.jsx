@@ -17,24 +17,36 @@ import { MAX_TOTAL_SCORE, evaluateGame } from './scoring.js'
 
 function VariantGrid({ step, selectedId, enabled, onPick }) {
   return (
-    <div className="variant-grid" role="radiogroup" aria-label={step.label}>
-      {step.variants.map((v) => {
-        const selected = selectedId === v.id
-        return (
-          <button
-            key={v.id}
-            type="button"
-            role="radio"
-            aria-checked={selected}
-            className={`variant ${selected ? 'is-selected' : ''}`}
-            disabled={!enabled}
-            onClick={() => onPick(selected ? null : v.id)}
-            title={selected ? 'Klõpsa uuesti eemaldamiseks' : undefined}
-          >
-            {v.label}
-          </button>
-        )
-      })}
+    <div className="variant-grid-wrap">
+      <div className="variant-grid" role="radiogroup" aria-label={step.label}>
+        {step.variants.map((v) => {
+          const selected = selectedId === v.id
+          return (
+            <button
+              key={v.id}
+              type="button"
+              role="radio"
+              aria-checked={selected}
+              className={`variant ${selected ? 'is-selected' : ''}`}
+              disabled={!enabled}
+              onClick={() => onPick(selected ? null : v.id)}
+              title={selected ? 'Klõpsa uuesti eemaldamiseks' : undefined}
+            >
+              {v.label}
+            </button>
+          )
+        })}
+      </div>
+      {selectedId && enabled && (
+        <button
+          type="button"
+          className="variant-clear"
+          onClick={() => onPick(null)}
+          title={`Eemalda ${step.label.toLowerCase()}`}
+        >
+          ⟲ Eemalda valik
+        </button>
+      )}
     </div>
   )
 }
@@ -668,7 +680,7 @@ const STEP_INFO = {
   },
   karkass: {
     title: 'Konstruktsioon',
-    body: 'Kandev konstruktsioon. 300/400/600 mm puitkarkass on klassikaline lahendus — number tähistab vahetugede sammu seinas. CLT (ristkihtliimpuit) on massiivpaneel, millel pole eraldi jäikusseinu ega seinaisolatsiooni vaja. Alumistel korrustel on koormus suurem (vaja tihedam samm või CLT), ülemistel väiksem.',
+    body: 'Kandev konstruktsioon. 300/400/600 mm puitkarkass on klassikaline lahendus — number tähistab postide sammu seinas. CLT (ristkihtliimpuit) on massiivpaneel, millel pole eraldi jäikusseinu ega seinaisolatsiooni vaja. Alumistel korrustel on koormus suurem (vaja tihedam samm või CLT), ülemistel väiksem.',
   },
   jaikus: {
     title: 'Jäikusseinad OSB',
@@ -676,11 +688,11 @@ const STEP_INFO = {
   },
   soojustus: {
     title: 'Isolatsioon',
-    body: 'Üks nupp lisab korraga seina + vannitoa mineraalvilla (puitkarkassil). CLT puhul lisandub ainult vannitoa isolatsioon. Siseseintes olev mineraalvill täidab eelkõige akustilise isolatsiooni, mitte soojustuse eesmärki.',
+    body: 'Üks nupp lisab korraga välisfassaadi isolatsiooni + vannitoa mineraalvilla. Puitkarkassi puhul lisandub ka siseseinade mineraalvill, mis täidab eelkõige akustilise isolatsiooni eesmärki. CLT-elementide soojustamine toimub väljastpoolt ning on nähtav alles siis, kui fassaadielemendid on paigaldatud.',
   },
   kips:  {
     title: 'Kipsplaadid',
-    body: 'Isolatsioonile järgnevad kipsplaadid, mis võivad olla 1, 2 või 3 kihis. Mida rohkem kihte, seda parem tulekindlus. 1.–4. korrusel on nõutav 2-kihiline (koos CLT-ga tulepüsivuse tagamiseks), 5.–10. korrusel 3-kihiline. Vale kipsivaliku korral loetakse ehitis tulepüsivuse osas aladimensioneerituks.',
+    body: 'Isolatsioonile järgnevad kipsplaadid, mis võivad olla 1, 2 või 3 kihis. Mida rohkem kihte, seda parem tulekindlus. Kõrghoonete puhul on vajalik CLT-elemendid katta kipsplaatidega kahes kihis ning puitkarkass kolmes kihis. Vale kipsplaatide valiku korral loetakse ehitis tulepüsivuse osas aladimensioneerituks.',
   },
   fassaad: {
     title: 'Fassaad',
