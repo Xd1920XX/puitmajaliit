@@ -226,6 +226,15 @@ export default function App() {
     try { localStorage.removeItem(STORAGE_KEY) } catch {}
   }
 
+  // Full reset + bounce back to game-select screen. Clears the build,
+  // clears the chosen game, hides the intro so the next game pick shows
+  // its own intro again.
+  const goToGameSelect = () => {
+    reset()
+    setSelectedGameId(null)
+    setIntroSeen(false)
+  }
+
   // Lock the timer + fire Academy submit. Called from Sidebar's Esita button.
   const submitBuilding = useCallback(() => {
     setSubmittedAt(Date.now())
@@ -337,6 +346,7 @@ export default function App() {
             onResumeBuilding={resumeBuilding}
             onSubmitToAcademy={submitToAcademy}
             onReturnToAcademy={returnToAcademy}
+            onGoToGameSelect={goToGameSelect}
           />
         )}
       </main>

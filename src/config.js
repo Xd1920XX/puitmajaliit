@@ -5,17 +5,27 @@ export const GAMES = [
   {
     id: 'vm-001',
     title: 'Mäng 1',
-    short: 'Mäng 1 · ajaga',
+    short: 'Mäng 1 · 15 min',
     description:
       'Ehita etteantud aja jooksul tugevate tormituulte eest kaitstud piirkonda optimaalse konstruktsioonilahendusega 10-korruseline hoone.',
     scoring:
       'Võidab see, kes saab etteantud ajaraamis rohkem punkte. Võrdse punktiarvu korral võidab lühema ajaga lahendaja.',
-    timeLimitMs: 10 * 60 * 1000,
+    timeLimitMs: 15 * 60 * 1000,
+  },
+  {
+    id: 'vm-003',
+    title: 'Mäng 2',
+    short: 'Mäng 2 · 30 min',
+    description:
+      'Ehita pikema aja jooksul tugevate tormituulte eest kaitstud piirkonda optimaalse konstruktsioonilahendusega 10-korruseline hoone. Sobib esmakordsele proovimisele.',
+    scoring:
+      'Võidab see, kes saab etteantud ajaraamis rohkem punkte. Võrdse punktiarvu korral võidab lühema ajaga lahendaja.',
+    timeLimitMs: 30 * 60 * 1000,
   },
   {
     id: 'vm-002',
-    title: 'Mäng 2',
-    short: 'Mäng 2 · ilma ajata',
+    title: 'Mäng 3',
+    short: 'Mäng 3 · ilma ajata',
     description:
       'Ehita tugevate tormituulte eest kaitstud piirkonda optimaalseima konstruktsioonilahendusega 10-korruseline hoone.',
     scoring:
@@ -84,6 +94,8 @@ export const FASSAAD_VARIANTS = [
     trepikoda1K:  '/GLB/Trepikoda_1K_Viimistlus_A.glb',
     trepikoda2K:  '/GLB/Trepikoda_2K_Viimistlus_A.glb',
     katus:        '/GLB/Katused_Viimistlus_A.glb',
+    // Background shown in the submit modal. Image file to be added.
+    backgroundImage: '/backgrounds/fassaad_A.jpg',
   },
   {
     id: 'B',
@@ -92,6 +104,7 @@ export const FASSAAD_VARIANTS = [
     trepikoda1K:  '/GLB/Trepikoda_1K_Viimistlus_B.glb',
     trepikoda2K:  '/GLB/Trepikoda_2K_Viimistlus_B.glb',
     katus:        '/GLB/Katused_Viimistlus_B.glb',
+    backgroundImage: '/backgrounds/fassaad_B.jpg',
   },
   {
     id: 'C',
@@ -102,6 +115,7 @@ export const FASSAAD_VARIANTS = [
     trepikoda1K:  '/GLB/Trepikoda_1K_Viimistlus_C.glb',
     trepikoda2K:  '/GLB/Trepikoda_2K_Viimistlus_C.glb',
     katus:        '/GLB/Katused_Viimistlus_C.glb',
+    backgroundImage: '/backgrounds/fassaad_C.jpg',
   },
 ]
 

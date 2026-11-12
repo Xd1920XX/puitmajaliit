@@ -199,7 +199,9 @@ export default function Sidebar({
   onResumeBuilding = null,
   onSubmitToAcademy = null,
   onReturnToAcademy = null,
+  onGoToGameSelect = null,
 }) {
+  const fassaadVariantObj = fassaadVariantById(fassaadVariant)
   const floor = floors.find((f) => f.id === selectedFloorId)
   const doneCount = floors.filter(isFloorComplete).length
   const canGoPrev = selectedFloorId > 1
@@ -521,38 +523,24 @@ export default function Sidebar({
           })}
         </ol>
 
-        {complete && (
+        {complete && !buildingSubmittable && (
           <div
-            className={`floor-complete ${roofOnThisFloor ? 'is-final' : ''}`}
+            className="floor-complete"
             ref={confirmRef}
             role="status"
           >
             <div className="floor-complete-head">
-              <span className="floor-complete-icon" aria-hidden>{roofOnThisFloor ? '🏠' : '✓'}</span>
+              <span className="floor-complete-icon" aria-hidden>✓</span>
               <div>
-                <strong>
-                  {roofOnThisFloor
-                    ? 'Ehitis on valmis'
-                    : `Korrus ${selectedFloorId} valmis`}
-                </strong>
+                <strong>Korrus {selectedFloorId} valmis</strong>
                 <p>
-                  {roofOnThisFloor
-                    ? 'Paigaldasid katuse — ehitamine on lõpetatud. Esita oma ehitis.'
-                    : hasNextFloor
-                      ? 'Kõik kohustuslikud sammud tehtud. Lisa soovi korral valikulised või kinnita ja liigu järgmisele korrusele.'
-                      : 'Viimane korrus valmis. Paigalda katus ja esita ehitis.'}
+                  {hasNextFloor
+                    ? 'Kõik kohustuslikud sammud tehtud. Lisa soovi korral valikulised või kinnita ja liigu järgmisele korrusele.'
+                    : 'Viimane korrus valmis. Paigalda katus ja esita ehitis.'}
                 </p>
               </div>
             </div>
-            {roofOnThisFloor ? (
-              <button
-                type="button"
-                className="btn btn-primary is-pulse"
-                onClick={requestSubmit}
-              >
-                Esita ehitis →
-              </button>
-            ) : hasNextFloor ? (
+            {hasNextFloor && (
               <button
                 type="button"
                 className="btn btn-primary is-pulse"
@@ -560,7 +548,34 @@ export default function Sidebar({
               >
                 Kinnita korrus {selectedFloorId} →
               </button>
-            ) : null}
+            )}
+          </div>
+        )}
+
+        {buildingSubmittable && (
+          <div
+            className="floor-complete is-final"
+            ref={confirmRef}
+            role="status"
+          >
+            <div className="floor-complete-head">
+              <span className="floor-complete-icon" aria-hidden>🏠</span>
+              <div>
+                <strong>Ehitis on valmis</strong>
+                <p>
+                  {roofOnThisFloor
+                    ? 'Paigaldasid katuse — ehitamine on lõpetatud. Esita oma ehitis.'
+                    : `Katus paigaldatud ${roofId}. korrusele. Saad esitada igalt korruselt.`}
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              className="btn btn-primary is-pulse"
+              onClick={requestSubmit}
+            >
+              Esita ehitis →
+            </button>
           </div>
         )}
       </div>
@@ -569,6 +584,16 @@ export default function Sidebar({
         <button type="button" className="btn btn-ghost btn-full" onClick={handleResetClick}>
           Alusta uuesti
         </button>
+        {onGoToGameSelect && (
+          <button
+            type="button"
+            className="btn btn-ghost btn-full sidebar-foot-link"
+            onClick={onGoToGameSelect}
+            title="Lõpeta see mäng ja vali uus"
+          >
+            ← Vali mäng
+          </button>
+        )}
       </footer>
 
       <Modal
@@ -642,6 +667,18 @@ export default function Sidebar({
                 Sulge
               </button>
             )}
+            {onGoToGameSelect && (
+              <button
+                type="button"
+                className="btn btn-ghost"
+                onClick={() => {
+                  setShowSubmit(false)
+                  onGoToGameSelect()
+                }}
+              >
+                Vali teine mäng
+              </button>
+            )}
             <button
               type="button"
               className="btn btn-primary"
@@ -656,6 +693,13 @@ export default function Sidebar({
         }
       >
         {showSubmit && submitState === 'ok' && !scoring.zeroed && <Confetti />}
+        {fassaadVariantObj?.backgroundImage && (
+          <div
+            className="submit-bg"
+            style={{ backgroundImage: `url(${fassaadVariantObj.backgroundImage})` }}
+            aria-hidden
+          />
+        )}
         <p className="modal-lead">Sinu puitmaja on esitatud. Vaata kokkuvõtet:</p>
         <AcademySubmitStatus
           state={submitState}
