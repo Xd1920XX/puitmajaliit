@@ -4,8 +4,9 @@
 // Põhimõtted:
 //   - Igal korrusel kolm kategooriat: karkass, OSB (jäikus), kips.
 //   - Iga valik klassifitseeritakse: 'correct' | 'over' | 'under' | 'na' | 'missing'.
-//   - Punktid: karkass correct=10, over=5; OSB correct=5, over=2; kips 0 p.
+//   - Punktid: karkass correct=10, over=5; OSB correct=5, over=0; kips 0 p.
 //     under = 0 p ja korrutab terve mängu kogupunktid 0-ga läbi.
+//     (OSB over=0 hoiab kogu skoori 5-kordse vahemikus — excel kooskõla.)
 //   - CLT valik 1.–4. korrusel annab OSB auto-punktid (5 p), eraldi OSB ei valita.
 //   - Täispunktid = 150 (10 × (10 + 5)). Kips ei anna punkte, aga vale kips võib
 //     terve ehitise null-i viia.
@@ -13,7 +14,7 @@
 //     mittepositiivne teavitus või positiivne kinnitus.
 
 export const KARKASS_POINTS = { correct: 10, over: 5, under: 0 }
-export const OSB_POINTS     = { correct: 5,  over: 2, under: 0 }
+export const OSB_POINTS     = { correct: 5,  over: 0, under: 0 }
 export const KIPS_POINTS    = { correct: 0,  over: 0, under: 0 }
 export const CLT_OSB_AUTO_POINTS = 5
 

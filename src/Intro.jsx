@@ -92,7 +92,7 @@ function MaterialCard({ icon, label, what, when }) {
   )
 }
 
-export default function Intro({ onStart, game = null }) {
+export default function Intro({ onStart, game = null, onBack = null, backLabel = 'Pöördu tagasi' }) {
   return (
     <div className="intro-overlay" role="dialog" aria-modal="true" aria-labelledby="intro-title">
       <div className="intro-card">
@@ -161,6 +161,11 @@ export default function Intro({ onStart, game = null }) {
         </section>
 
         <footer className="intro-foot">
+          {onBack && (
+            <button type="button" className="btn btn-ghost btn-lg intro-back" onClick={onBack}>
+              ← {backLabel}
+            </button>
+          )}
           <button type="button" className="btn btn-primary btn-lg" onClick={onStart}>
             Alusta →
           </button>

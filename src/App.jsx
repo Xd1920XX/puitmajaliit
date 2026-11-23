@@ -9,6 +9,7 @@ import { submitResult } from './academy/api.js'
 import { DEFAULT_RETURN_URL } from './academy/config.js'
 import { FLOOR_STEPS, GAMES, MAX_FLOORS, gameById } from './config.js'
 import { canSelectFloor, isFloorComplete } from './floorState.js'
+import { evaluateGame } from './scoring.js'
 
 // Lazy-load the 3D viewer so three.js + R3F don't block the initial
 // HTML/CSS paint. UI shell appears instantly while the heavy chunk streams.
@@ -60,6 +61,9 @@ export default function App() {
   const [startedAt, setStartedAt] = useState(null)
   const [elapsedMs, setElapsedMs] = useState(0)
   const [submittedAt, setSubmittedAt] = useState(null)
+  // `finalized` is the terminal lock — user chose "Lõpeta ja salvesta" or
+  // countdown ran out. Blocks resume + hides "Parandamiseks tagasi" button.
+  const [finalized, setFinalized] = useState(false)
   const pausedElapsedRef = useRef(null)
 
   const game = useMemo(() => gameById(selectedGameId), [selectedGameId])
@@ -104,11 +108,13 @@ export default function App() {
     }
   }, [submitted, submittedAt, startedAt])
 
-  // Auto-submit on countdown hitting zero.
+  // Auto-submit on countdown hitting zero. Time-out finalizes immediately —
+  // user cannot resume the game after the countdown expires.
   useEffect(() => {
     if (!timeLimitMs || submitted || startedAt === null) return
     if (elapsedMs >= timeLimitMs) {
       setSubmittedAt(startedAt + timeLimitMs)
+      setFinalized(true)
     }
   }, [elapsedMs, timeLimitMs, submitted, startedAt])
 
@@ -139,6 +145,7 @@ export default function App() {
           startedAt,
           elapsedMs,
           submittedAt,
+          finalized,
           introSeen: true,
           fassaadVariant,
         }
@@ -146,7 +153,7 @@ export default function App() {
       } catch {}
     }, 300)
     return () => clearTimeout(t)
-  }, [floors, selectedFloorId, selectedGameId, startedAt, elapsedMs, submittedAt, introSeen, fassaadVariant])
+  }, [floors, selectedFloorId, selectedGameId, startedAt, elapsedMs, submittedAt, finalized, introSeen, fassaadVariant])
 
   const pickGame = (id) => {
     setSelectedGameId(id)
@@ -169,6 +176,7 @@ export default function App() {
       setStartedAt(Date.now() - elapsed)
     }
     setSubmittedAt(s.submittedAt ?? null)
+    setFinalized(s.finalized === true)
     setFassaadVariant(s.fassaadVariant ?? null)
     setIntroSeen(true)
     setRestorePrompt(null)
@@ -222,6 +230,7 @@ export default function App() {
     setStartedAt(null)
     setElapsedMs(0)
     setSubmittedAt(null)
+    setFinalized(false)
     setFassaadVariant(null)
     try { localStorage.removeItem(STORAGE_KEY) } catch {}
   }
@@ -235,18 +244,26 @@ export default function App() {
     setIntroSeen(false)
   }
 
-  // Lock the timer + fire Academy submit. Called from Sidebar's Esita button.
+  // "Esita ehitis kontrolliks" — freeze timer + open review modal. No
+  // Academy write yet; that fires on finalize.
   const submitBuilding = useCallback(() => {
     setSubmittedAt(Date.now())
   }, [])
 
-  // Modal "Sulge" — resume timer and keep building.
+  // "Parandamiseks tagasi mängu" — resume timer and keep building.
+  // No-op after finalize (terminal lock).
   const resumeBuilding = useCallback(() => {
+    if (finalized) return
     if (!submittedAt || !startedAt) return
     const held = submittedAt - startedAt
     setStartedAt(Date.now() - held)
     setSubmittedAt(null)
-  }, [submittedAt, startedAt])
+  }, [submittedAt, startedAt, finalized])
+
+  // "Lõpeta ja salvesta" — terminal lock. Sidebar fires Academy submit.
+  const finalizeBuilding = useCallback(() => {
+    setFinalized(true)
+  }, [])
 
   const submitToAcademy = useCallback(
     async (payload) => {
@@ -297,6 +314,37 @@ export default function App() {
   const showGameSelect = !selectedGameId && !restorePrompt
   const showIntro = selectedGameId && !introSeen && !restorePrompt
 
+  // Structural warning — if any floor has an `under` classification, the
+  // building is zeroed. Surface the first problem (lowest floor id) so the
+  // viewer can render an animated hint of the failure mode.
+  const structuralWarning = useMemo(() => {
+    if (!introSeen) return null
+    const r = evaluateGame(floors)
+    if (!r.zeroed) return null
+    for (let i = 0; i < r.perFloor.length; i++) {
+      const pf = r.perFloor[i]
+      const floorId = i + 1
+      if (pf.karkass.cls === 'under') {
+        return { floorId, reason: 'karkass', text: 'Muljumine — karkass alakoormatud' }
+      }
+      if (pf.osb.cls === 'under') {
+        return { floorId, reason: 'osb', text: 'Rombdeformatsioon — jäikus puudub' }
+      }
+      if (pf.kips.cls === 'under') {
+        return { floorId, reason: 'kips', text: 'Tulepüsivus ebapiisav' }
+      }
+    }
+    return null
+  }, [floors, introSeen])
+
+  // Intro back button — prefer returning to the Academy if we have a
+  // return_url; otherwise back to the game-select screen (the previous
+  // page in the app flow).
+  const hasAcademyReturn = !!(academyUser?.return_url || DEFAULT_RETURN_URL)
+  const introBack = hasAcademyReturn
+    ? returnToAcademy
+    : () => setSelectedGameId(null)
+
   return (
     <div className="app">
       <AcademyBar user={academyUser} onReturn={returnToAcademy} />
@@ -308,6 +356,7 @@ export default function App() {
                 floors={floors}
                 selectedFloorId={selectedFloorId}
                 fassaadVariant={fassaadVariant}
+                structuralWarning={structuralWarning}
               />
             </Suspense>
           </ErrorBoundary>
@@ -340,10 +389,12 @@ export default function App() {
             remainingMs={remainingMs}
             timerStarted={startedAt !== null}
             submitted={submitted}
+            finalized={finalized}
             game={game}
             academyUser={academyUser}
             onSubmitBuilding={submitBuilding}
             onResumeBuilding={resumeBuilding}
+            onFinalizeBuilding={finalizeBuilding}
             onSubmitToAcademy={submitToAcademy}
             onReturnToAcademy={returnToAcademy}
             onGoToGameSelect={goToGameSelect}
@@ -351,7 +402,14 @@ export default function App() {
         )}
       </main>
       {showGameSelect && <GameSelect onPick={pickGame} />}
-      {showIntro && <Intro game={game} onStart={startBuilding} />}
+      {showIntro && (
+        <Intro
+          game={game}
+          onStart={startBuilding}
+          onBack={introBack}
+          backLabel={hasAcademyReturn ? 'Pöördu tagasi Academy\'sse' : 'Pöördu tagasi'}
+        />
+      )}
       {restorePrompt && (
         <RestoreModal
           saved={restorePrompt}

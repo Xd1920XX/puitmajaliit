@@ -208,7 +208,7 @@ function CameraTween({ tweenRef, controlsRef }) {
   return null
 }
 
-export default function HouseViewer({ floors, selectedFloorId = 1, fassaadVariant = null }) {
+export default function HouseViewer({ floors, selectedFloorId = 1, fassaadVariant = null, structuralWarning = null }) {
   const fassaadVariantObj = useMemo(
     () => fassaadVariantById(fassaadVariant),
     [fassaadVariant],
@@ -388,6 +388,9 @@ export default function HouseViewer({ floors, selectedFloorId = 1, fassaadVarian
           <span className="hud-badge-num">{builtCount}</span>
           <span className="hud-badge-lbl">/ {MAX_FLOORS} korrust</span>
         </div>
+        {structuralWarning && (
+          <StructuralWarning warning={structuralWarning} />
+        )}
       </div>
 
       {!panelOpen && (
@@ -479,6 +482,46 @@ export default function HouseViewer({ floors, selectedFloorId = 1, fassaadVarian
       </div>
 
       <LoadingOverlay />
+    </div>
+  )
+}
+
+// Visualises the failure mode when the building is load-bearing invalid.
+// `karkass` under → vertical compression ("muljumine"); `osb` under →
+// parallelogram shear ("rombdeformatsioon"); `kips` under → flame pulse
+// (fire-resistance). Pure SVG + CSS keyframes — no three.js tie-in.
+function StructuralWarning({ warning }) {
+  return (
+    <div className={`viewer-warning viewer-warning-${warning.reason}`} role="alert">
+      <div className="viewer-warning-icon" aria-hidden>
+        {warning.reason === 'karkass' && (
+          <svg viewBox="0 0 40 40" className="warn-anim warn-anim-crush">
+            <rect x="6"  y="4"  width="6" height="32" rx="1" fill="currentColor" />
+            <rect x="17" y="4"  width="6" height="32" rx="1" fill="currentColor" />
+            <rect x="28" y="4"  width="6" height="32" rx="1" fill="currentColor" />
+            <rect x="2"  y="34" width="36" height="4" fill="currentColor" opacity="0.4" />
+          </svg>
+        )}
+        {warning.reason === 'osb' && (
+          <svg viewBox="0 0 40 40" className="warn-anim warn-anim-shear">
+            <rect x="6" y="6" width="28" height="28" rx="1" fill="none" stroke="currentColor" strokeWidth="2.5" />
+            <line x1="6"  y1="6"  x2="34" y2="34" stroke="currentColor" strokeWidth="1.2" opacity="0.5" />
+            <line x1="34" y1="6"  x2="6"  y2="34" stroke="currentColor" strokeWidth="1.2" opacity="0.5" />
+          </svg>
+        )}
+        {warning.reason === 'kips' && (
+          <svg viewBox="0 0 40 40" className="warn-anim warn-anim-flame">
+            <path
+              d="M20 4 C 14 14, 10 18, 10 26 a10 10 0 0 0 20 0 c 0-6 -4-10 -6-16 -1 4 -3 6 -4 10 z"
+              fill="currentColor"
+            />
+          </svg>
+        )}
+      </div>
+      <div className="viewer-warning-text">
+        <strong>Kandevõime ohus</strong>
+        <span>Korrus {warning.floorId}: {warning.text}</span>
+      </div>
     </div>
   )
 }

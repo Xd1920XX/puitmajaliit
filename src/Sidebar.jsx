@@ -141,8 +141,8 @@ function BuildingSummary({ floors, roofId, elapsedMs = 0 }) {
       </div>
       {zeroed && rawTotal > 0 && (
         <div className="summary-row summary-sub">
-          <span>Toorpunktid (enne korrutist)</span>
-          <strong>{rawTotal}</strong>
+          <span>Õigesti koostatud konstruktsioon</span>
+          <strong>{rawTotal} / {MAX_TOTAL_SCORE}</strong>
         </div>
       )}
       {message && (
@@ -193,10 +193,12 @@ export default function Sidebar({
   remainingMs = null,
   timerStarted = false,
   submitted = false,
+  finalized = false,
   game = null,
   academyUser = null,
   onSubmitBuilding = null,
   onResumeBuilding = null,
+  onFinalizeBuilding = null,
   onSubmitToAcademy = null,
   onReturnToAcademy = null,
   onGoToGameSelect = null,
@@ -268,8 +270,9 @@ export default function Sidebar({
     }
   }
 
-  // Fire Academy submit + open modal. Idempotent per "lock cycle" — resetSubmit
-  // (triggered by closing/resuming) clears the ref so re-submit is possible.
+  // Fire Academy submit. Idempotent per "finalize cycle" — reset after a
+  // successful resume (only possible pre-finalize) so a later finalize
+  // re-submits with the newer score.
   const fireAcademySubmit = () => {
     if (submitFiredRef.current) return
     submitFiredRef.current = true
@@ -292,20 +295,17 @@ export default function Sidebar({
       })
   }
 
-  // User-initiated Esita click.
+  // "Esita ehitis kontrolliks" — freeze timer + open preview modal.
+  // No Academy write yet; that fires on finalize.
   const requestSubmit = () => {
     onSubmitBuilding?.()
     setShowSubmit(true)
-    fireAcademySubmit()
   }
 
-  // When the parent flips `submitted` to true externally (e.g. countdown
-  // auto-submit), open modal + fire Academy submit if not already done.
+  // When the parent flips `submitted` true externally (e.g. countdown
+  // auto-submit, which also sets finalized), open modal.
   useEffect(() => {
-    if (submitted && !showSubmit) {
-      setShowSubmit(true)
-      fireAcademySubmit()
-    }
+    if (submitted && !showSubmit) setShowSubmit(true)
     if (!submitted) {
       submitFiredRef.current = false
       setSubmitState('idle')
@@ -313,10 +313,23 @@ export default function Sidebar({
     }
   }, [submitted]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Modal "Sulge" / X / backdrop click — resume building; parent clears submittedAt.
+  // When finalize flips true (user clicked "Lõpeta ja salvesta" or timeout),
+  // fire the Academy submit. Modal stays open in terminal state.
+  useEffect(() => {
+    if (finalized) fireAcademySubmit()
+  }, [finalized]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // "Parandamiseks tagasi mängu" — close modal, resume timer.
+  // Not available after finalize.
   const handleResume = () => {
+    if (finalized) return
     setShowSubmit(false)
     onResumeBuilding?.()
+  }
+
+  // "Lõpeta ja salvesta" — terminal lock + Academy write.
+  const handleFinalize = () => {
+    onFinalizeBuilding?.()
   }
 
   // Timer label logic — countdown for timed games, elapsed for untimed.
@@ -574,7 +587,7 @@ export default function Sidebar({
               className="btn btn-primary is-pulse"
               onClick={requestSubmit}
             >
-              Esita ehitis →
+              Esita ehitis kontrolliks →
             </button>
           </div>
         )}
@@ -643,12 +656,16 @@ export default function Sidebar({
 
       <Modal
         open={showSubmit}
-        onClose={timeOut ? undefined : handleResume}
-        title={timeOut ? 'Aeg otsas — ehitis esitatud' : 'Ehitis esitatud'}
+        onClose={finalized ? undefined : handleResume}
+        title={
+          finalized
+            ? (timeOut ? 'Aeg otsas — tulemus lukustatud' : 'Tulemus salvestatud')
+            : 'Ehitise eelvaade — kontrolliks'
+        }
         tone="success"
         actions={
           <>
-            {academyUser && onReturnToAcademy && (
+            {finalized && academyUser && onReturnToAcademy && (
               <button
                 type="button"
                 className="btn btn-ghost"
@@ -657,17 +674,27 @@ export default function Sidebar({
                 ← Tagasi Academy'sse
               </button>
             )}
-            {!timeOut && (
+            {!finalized && (
               <button
                 type="button"
                 className="btn btn-ghost"
                 onClick={handleResume}
-                title="Taimer tiksub edasi — saad jätkata ehitamist"
+                title="Taimer jätkub — saad korruseid muuta"
               >
-                Sulge
+                Parandamiseks tagasi mängu
               </button>
             )}
-            {onGoToGameSelect && (
+            {!finalized && (
+              <button
+                type="button"
+                className="btn btn-primary is-pulse"
+                onClick={handleFinalize}
+                title="Lukustab tulemuse ja saadab Academy'sse — pärast seda ei saa enam muuta"
+              >
+                Lõpeta ja salvesta
+              </button>
+            )}
+            {finalized && onGoToGameSelect && (
               <button
                 type="button"
                 className="btn btn-ghost"
@@ -679,16 +706,18 @@ export default function Sidebar({
                 Vali teine mäng
               </button>
             )}
-            <button
-              type="button"
-              className="btn btn-primary"
-              onClick={() => {
-                setShowSubmit(false)
-                onReset()
-              }}
-            >
-              Alusta uut ehitist
-            </button>
+            {finalized && (
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={() => {
+                  setShowSubmit(false)
+                  onReset()
+                }}
+              >
+                Alusta uut ehitist
+              </button>
+            )}
           </>
         }
       >
@@ -700,7 +729,11 @@ export default function Sidebar({
             aria-hidden
           />
         )}
-        <p className="modal-lead">Sinu puitmaja on esitatud. Vaata kokkuvõtet:</p>
+        <p className="modal-lead">
+          {finalized
+            ? 'Sinu tulemus on salvestatud. Vaata kokkuvõtet:'
+            : 'Vaata ehitise kokkuvõtet. Saad tulemuse lukustada või tagasi mängu minna muudatuste tegemiseks.'}
+        </p>
         <AcademySubmitStatus
           state={submitState}
           error={submitError}

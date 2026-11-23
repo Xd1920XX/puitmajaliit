@@ -56,6 +56,10 @@ body,
   margin: 0;
 }
 
+html, body {
+  overflow: hidden;
+}
+
 body {
   font-family: var(--font-body);
   color: var(--brand-ink);
