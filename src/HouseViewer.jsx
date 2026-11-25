@@ -15,6 +15,7 @@ import {
   FLOOR_STEPS,
   LAYERS,
   FLOOR_HEIGHT,
+  GROUND_RODU_URL,
   MAX_FLOORS,
   SOOJUSTUS_URLS,
   FASSAAD_VARIANTS,
@@ -144,11 +145,13 @@ function Floor({ index, floor, floorAbove, collapsed, fassaadVariant }) {
 }
 
 function House({ floors, selectedFloorId, fassaadVariant }) {
+  const floor1 = floors[0]
   return (
     <>
       {BASELINE_URLS.map((url) => (
         <Model key={url} url={url} />
       ))}
+      {floor1?.rodu && <Model url={GROUND_RODU_URL} />}
       {floors.map((f, i) => {
         // Collapse any completed floor the user has moved away from:
         // interior frame/insulation/gypsum/floor-slab/ceiling GLBs stay
@@ -539,6 +542,7 @@ function LoadingOverlay() {
 
 // Preload every GLB up front so building a floor doesn't stall on network I/O.
 BASELINE_URLS.forEach((url) => useGLTF.preload(url))
+useGLTF.preload(GROUND_RODU_URL)
 VARIANT_STEPS.forEach((s) => s.variants.forEach((v) => useGLTF.preload(v.url)))
 LAYER_TOGGLE_STEPS.forEach((s) => useGLTF.preload(LAYERS[s.id].url))
 Object.values(SOOJUSTUS_URLS).forEach((url) => useGLTF.preload(url))

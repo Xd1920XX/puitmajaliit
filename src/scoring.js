@@ -89,11 +89,15 @@ export function classifyOsb(floorId, variant, karkassVariant) {
   return diff < 0 ? 'over' : 'under'
 }
 
-export function classifyKips(floorId, variant) {
+export function classifyKips(floorId, variant, karkassVariant) {
   if (!variant) return 'missing'
   const correct = CORRECT_KIPS[floorId]
   if (!correct) return 'na'
   if (variant === correct) return 'correct'
+  // CLT walls: 3-kihiline kips does not count as over-dimensioning — the
+  // panel's extra fire reserve absorbs the over-spec without penalty.
+  // 1-kihiline still reads as under (insufficient fire resistance).
+  if (karkassVariant === 'CLT' && variant === '3') return 'correct'
   const diff = compareIndex(variant, correct, KIPS_ORDER)
   if (diff === null) return 'na'
   return diff < 0 ? 'under' : 'over'
@@ -120,7 +124,7 @@ export function evaluateFloor(floor) {
 
   const kCls = classifyKarkass(floor.id, floor.karkass)
   const oCls = classifyOsb(floor.id, floor.jaikus, floor.karkass)
-  const kipsCls = classifyKips(floor.id, floor.kips)
+  const kipsCls = classifyKips(floor.id, floor.kips, floor.karkass)
 
   const kPts = pointsFor(KARKASS_POINTS, kCls)
   const oPts = oCls === 'auto' ? CLT_OSB_AUTO_POINTS : pointsFor(OSB_POINTS, oCls)

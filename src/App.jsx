@@ -356,7 +356,10 @@ export default function App() {
                 floors={floors}
                 selectedFloorId={selectedFloorId}
                 fassaadVariant={fassaadVariant}
-                structuralWarning={structuralWarning}
+                // Hoiatus-visuaali kuvamine viidud abipalve-nupu taha.
+                // Kuni voog otsustatud, ei näita kohe — vastasel korral
+                // mäng muutub liiga lihtsaks (user feedback 2026-11-25).
+                structuralWarning={null}
               />
             </Suspense>
           </ErrorBoundary>

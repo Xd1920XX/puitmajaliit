@@ -45,12 +45,16 @@ export const MAX_FLOORS = 10
 export const FLOOR_HEIGHT = 3.0
 
 // Baseline site models — always visible, sit below floor 1.
-// Underground parking + ground surface + ground-level balcony/landscaping.
+// Underground parking + ground surface.
 export const BASELINE_URLS = [
   '/GLB/Parkla.glb',
   '/GLB/Maapind_Parkla.glb',
-  '/GLB/Rodu_Maapinnal.glb',
 ]
+
+// Ground-level rõdu segment (posts anchored at grade). Follows floor 1's
+// rõdu toggle — removing the ground-floor balcony also removes these
+// support posts from the baseline.
+export const GROUND_RODU_URL = '/GLB/Rodu_Maapinnal.glb'
 
 // Karkass variants. Each floor picks one. `yOffset` adjusts the model's
 // vertical placement relative to its floor group (defaults to 0).
@@ -180,7 +184,7 @@ export const SOOJUSTUS_URLS = {
 export const FLOOR_STEPS = [
   { id: 'porand',              label: 'Põrand',                kind: 'toggle',                                                                     hint: 'Põrandakonstruktsioon' },
   { id: 'karkass',             label: 'Konstruktsioon',        kind: 'variant', variants: KARKASS_VARIANTS, hideWhenAboveComplete: true,           hint: 'Vali kandev konstruktsioon' },
-  { id: 'jaikus',              label: 'Jäikusseinad OSB',      kind: 'variant', variants: JAIKUS_VARIANTS,  skipWhenVariant: { karkass: ['CLT'] }, hint: 'OSB jäikusseinad' },
+  { id: 'jaikus',              label: 'Puitkarkassil jäikusseinad', kind: 'variant', variants: JAIKUS_VARIANTS,  skipWhenVariant: { karkass: ['CLT'] }, hint: 'OSB jäikusseinad puitkarkassile' },
   { id: 'soojustus',           label: 'Isolatsioon',           kind: 'toggle',                                                                     hint: 'Soojus- ja akustiline isolatsioon' },
   { id: 'kips',                label: 'Kipsplaadid',           kind: 'variant', variants: KIPS_VARIANTS,                                           hint: 'Vali kipsi kihtide arv' },
   { id: 'fassaad',             label: 'Fassaad',               kind: 'toggle',                                                                     hint: 'Välifassaad' },

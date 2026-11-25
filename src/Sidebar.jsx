@@ -753,43 +753,43 @@ export default function Sidebar({
 const STEP_INFO = {
   porand: {
     title: 'Põrand',
-    body: 'Põrandakonstruktsioon moodustab iga korruse aluse. Lisatakse alati esimesena enne karkassi püstitamist. Tagab staatilise jäikuse ja kannab elanike + mööbli raskust alusstruktuurile. Esimese põranda lisamine käivitab mängu taimeri.',
+    body: 'Põrandakonstruktsioon moodustab iga korruse aluse, mis lisatakse alati esimesena enne karkassi püstitamist. Põrand aitab tagada hoone jäikust ning kannab elanike ja mööbli raskust. Alumise korruse põranda lisamine käivitab mängu taimeri.',
   },
   karkass: {
     title: 'Konstruktsioon',
-    body: 'Kandev konstruktsioon. 300/400/600 mm puitkarkass on klassikaline lahendus — number tähistab postide sammu seinas. CLT (ristkihtliimpuit) on massiivpaneel, millel pole eraldi jäikusseinu ega seinaisolatsiooni vaja. Alumistel korrustel on koormus suurem (vaja tihedam samm või CLT), ülemistel väiksem.',
+    body: 'Kandev konstruktsioon. 300/400/600 mm on puitkarkassi koostamise klassikaline lahendus, kus number tähistab postide sammu seinas. CLT ehk ristkihtliimpuit on massiivpuidust element, mis täidab nii kandvat kui jäigastavat funktsiooni. CLT elementidest eluruumisisesed jäikusseinad isolatsiooni vaja.',
   },
   jaikus: {
-    title: 'Jäikusseinad OSB',
-    body: 'OSB plaadid naelutatakse karkassi peale, muutes seina jäigaks tuulekoormuste vastu. Naelutussamm (50/70/100 mm) määrab, kui tihedalt naelu lüüakse — mida tihedam, seda tugevam. CLT seinas pole jäikust vaja, kuna paneel ise on jäik. 1.–4. korrusel annab CLT valik automaatselt OSB punktid.',
+    title: 'Puitkarkassil jäikusseinad',
+    body: 'OSB plaadid naelutatakse koostatud puitkarkassi peale. Plaadid muudab seina piisavalt jäigaks, et võtta vastu tuulekoormust. Naelutussamm (50/70/100 mm) määrab, kui tihedalt naelad asetsevad — mida väiksem samm, seda tugevam sein. CLT seintes puudub jäigastava plaadi jaoks vajadus, kuna element ise on piisava jäikusega.',
   },
   soojustus: {
     title: 'Isolatsioon',
-    body: 'Üks nupp lisab korraga välisfassaadi isolatsiooni + vannitoa mineraalvilla. Puitkarkassi puhul lisandub ka siseseinade mineraalvill, mis täidab eelkõige akustilise isolatsiooni eesmärki. CLT-elementide soojustamine toimub väljastpoolt ning on nähtav alles siis, kui fassaadielemendid on paigaldatud.',
+    body: 'Isolatsiooni valikunupp lisab korraga nii puitkarkassil siseseinte kui välisseinte isolatsiooni. CLT-elementide soojustamine toimub väljastpoolt ning on nähtav alles siis, kui fassaadielemendid on paigaldatud.',
   },
   kips:  {
     title: 'Kipsplaadid',
-    body: 'Isolatsioonile järgnevad kipsplaadid, mis võivad olla 1, 2 või 3 kihis. Mida rohkem kihte, seda parem tulekindlus. Kõrghoonete puhul on vajalik CLT-elemendid katta kipsplaatidega kahes kihis ning puitkarkass kolmes kihis. Vale kipsplaatide valiku korral loetakse ehitis tulepüsivuse osas aladimensioneerituks.',
+    body: 'Kipsplaadid võivad olla 1, 2 või 3 kihis, sõltuvalt hoone tuleohutusnõuetest. Mida rohkem plaadikihte, seda vastupidavam on konstruktsioon tulekahju olukorras. Vale kipsplaatide valiku korral loetakse ehitis tulepüsivuse osas kas ala- või üledimensioneerituks.',
   },
   fassaad: {
     title: 'Fassaad',
-    body: 'Välimine kate — kaitseb seinad ilmastiku eest ja annab ehitisele visuaalse ilme. Paigaldatakse peale kipsi.',
+    body: 'Välimine kate — kaitseb hoone välisseina konstruktsioone ilmastikumõjude eest ning annab ehitisele visuaalse ilme.',
   },
   trepikoda: {
     title: 'Trepikoda',
-    body: 'Trepikoja segment lisatakse igale korrusele. 1. korrusel paigaldub maapinna segment (1K), ülejäänud korrustel korduv segment (2K). Trepikoda on läbiv vertikaalne element.',
+    body: 'Trepikoja segment lisatakse igale korrusele. 1. korrusel paigaldub maapinna segment, ülejäänud korrustel korduv trepikoja segment.',
   },
   rodu: {
     title: 'Rõdu',
-    body: 'Välisrõdu konstruktsioon. Valikuline — lisa ainult kui korrusel on rõdu kavandatud.',
+    body: 'Rõdu konstruktsioon on valikuline, mida saab hiljem ka korruste kaupa eemaldada.',
   },
   lagi: {
     title: 'Lagi',
-    body: 'Laekonstruktsioon sulgeb korruse. Vajalik enne järgmise korruse ehitamise alustamist. Kannab ülemise korruse põranda ja tagab tuleohutuse korruste vahel.',
+    body: 'Laekonstruktsioon sulgeb korruse ning on vajalik enne järgmise korruse ehitamisega alustamist. Koos ülemise korruse põrandaga moodustub korrusvahelagi.',
   },
   katus: {
     title: 'Katus',
-    body: 'Katusekate paigaldatakse ainult viimasele (10.) korrusele. Pärast katuse paigaldust ehitamine lõppeb — rohkem korruseid lisada ei saa. Katus on terminal, pöördumatu samm.',
+    body: 'Katuse saab paigaldada ainult viimasele (10.) korrusele. Sellega lõpeb ka ehitamine — rohkem korruseid lisada ei saa ning hoone on valmis esitamiseks.',
   },
 }
 
